@@ -5,4 +5,4 @@ build-backend = "maturin"
 [project]
 name = "rust-ops"
 dependencies = ["numpy", "thinc>=8.1.0.dev2,<8.2.0"]
-requires-python = ">=3.6"
+requires-python = ">=3.7"

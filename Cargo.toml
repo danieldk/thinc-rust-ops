@@ -11,10 +11,20 @@ crate-type = ["cdylib"]
 accelerate-src = { version = "0.3", optional = true }
 ndarray = { version = "0.15", features = ["blas"] }
 numpy = "0.16"
-pyo3 = { version = "0.16", features = ["extension-module"] }
+pyo3 = { version = "0.16", features = ["extension-module", "abi3", "abi3-py37"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accelerate-src = { version = "0.3" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+# Fix incompatibility between anyhow and intel-mkl tool. Remove with
+# the next release of intel-mkl too. For more information, see:
+# https://github.com/rust-math/intel-mkl-src/issues/68
+anyhow = { version = "<=1.0.48", optional = true }
+intel-mkl-src = { version = "0.6" }
+
+[target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies]
+blis-src = { version = "0.2", default-features = false, features = ["serial", "cblas", "static"] }
 
 [package.metadata.maturin]
 python-source = "python"
