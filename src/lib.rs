@@ -13,6 +13,8 @@ use pyo3::{pymodule, PyResult, Python};
 mod ops;
 use ops::RustOps;
 
+pub(crate) mod simd;
+
 #[pymodule]
 fn rust_ops(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<RustOps>()?;

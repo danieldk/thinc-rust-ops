@@ -29,17 +29,13 @@ except ImportError:
 
 MAX_EXAMPLES = 10
 
-VANILLA_OPS = Ops(numpy)  # type:ignore
-NUMPY_OPS = NumpyOps()
 BLIS_OPS = NumpyOps(use_blis=True)
-CPU_OPS = [NUMPY_OPS, VANILLA_OPS]
-XP_OPS = [NUMPY_OPS]
-if has_cupy_gpu:
-    XP_OPS.append(CupyOps())
+CPU_OPS = []
+XP_OPS = []
 if has_rust_ops:
     XP_OPS.append(RustOps())
     CPU_OPS.append(RustOps())
-ALL_OPS = XP_OPS + [VANILLA_OPS]
+ALL_OPS = XP_OPS
 
 FLOAT_TYPES = ["float32", "float64"]
 
@@ -1281,7 +1277,10 @@ def test_compare_activations_to_torch(ops, dtype, x, torch_func):
     y_thinc = forward(x_thinc)
     y.backward()
     assert x_thinc.dtype == y_thinc.dtype
-    assert ops.xp.isclose(y_thinc, forward(x_thinc, inplace=True), atol=1e-06)
+    assert y_thinc is not x_thinc
+    y_think_inplace = forward(x_thinc, inplace=True)
+    assert y_think_inplace is x_thinc
+    assert ops.xp.isclose(y_thinc, y_think_inplace, atol=1e-06)
     assert ops.xp.isclose(y_thinc, y.detach(), atol=1e-06)
     x_thinc = ops.asarray([x], dtype=dtype)
     dY_thinc = ops.asarray([1.0], dtype=dtype)
@@ -1293,10 +1292,12 @@ def test_compare_activations_to_torch(ops, dtype, x, torch_func):
     if params == {"dY", "X", "Y"}:
         dx_thinc = backward(dY_thinc, Y=y_thinc, X=x_thinc)
         assert dx_thinc.dtype == x_thinc.dtype
-        assert ops.xp.isclose(
-            dx_thinc,
-            backward(dY=dY_thinc_inplace, Y=y_thinc, X=x_thinc, inplace=True),
+        assert dx_thinc is not dY_thinc
+        dx_thinc_inplace = backward(
+            dY=dY_thinc_inplace, Y=y_thinc, X=x_thinc, inplace=True
         )
+        assert dx_thinc_inplace is dY_thinc_inplace
+        assert ops.xp.isclose(dx_thinc, dx_thinc_inplace)
         assert ops.xp.isclose(x_torch.grad.item(), float(dx_thinc), atol=1e-06)
     elif params == {"Y", "dY"}:
         dx_thinc = backward(dY_thinc, Y=y_thinc)

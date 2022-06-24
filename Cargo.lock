@@ -482,6 +482,7 @@ dependencies = [
  "blis-src",
  "intel-mkl-src",
  "ndarray",
+ "num-traits",
  "numpy",
  "pyo3",
 ]
