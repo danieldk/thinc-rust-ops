@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 [dependencies]
 accelerate-src = { version = "0.3", optional = true }
 ndarray = { version = "0.15", features = ["blas"] }
+num-traits = "0.2"
 numpy = "0.16"
 pyo3 = { version = "0.16", features = ["extension-module", "abi3", "abi3-py37"] }
 
