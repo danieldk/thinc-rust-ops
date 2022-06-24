@@ -1,6 +1,12 @@
 #[cfg(target_os = "macos")]
 extern crate accelerate_src;
 
+#[cfg(target_os = "windows")]
+extern crate intel_mkl_src;
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+extern crate blis_src;
+
 use pyo3::prelude::PyModule;
 use pyo3::{pymodule, PyResult, Python};
 
