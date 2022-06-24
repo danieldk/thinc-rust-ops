@@ -8,7 +8,13 @@ name = "rust_ops"
 crate-type = ["cdylib"]
 
 [dependencies]
+accelerate-src = { version = "0.3", optional = true }
+ndarray = { version = "0.15", features = ["blas"] }
+numpy = "0.16"
 pyo3 = { version = "0.16", features = ["extension-module"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+accelerate-src = { version = "0.3" }
 
 [package.metadata.maturin]
 python-source = "python"
