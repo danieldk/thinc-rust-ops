@@ -1,0 +1,14 @@
+[package]
+name = "rust-ops"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rust_ops"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.16", features = ["extension-module"] }
+
+[package.metadata.maturin]
+python-source = "python"
