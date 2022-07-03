@@ -57,6 +57,8 @@ pub trait Array: Send + Sync {
     fn logistic_function(&self, a: &mut [Self::Scalar]);
 
     fn relu(&self, a: &mut [Self::Scalar]);
+
+    fn swish(&self, a: &mut [Self::Scalar]);
 }
 
 impl<V, T> Array for V
@@ -126,6 +128,13 @@ where
         unsafe {
             let zero = V::splat(Self::Scalar::zero());
             V::apply_elementwise(|v| V::vmax(v, zero), |a| smaller.relu(a), a);
+        }
+    }
+
+    fn swish(&self, a: &mut [Self::Scalar]) {
+        let smaller = V::Lower::default();
+        unsafe {
+            V::apply_elementwise(|v| V::swish(v), |a| smaller.swish(a), a);
         }
     }
 }
