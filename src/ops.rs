@@ -169,6 +169,22 @@ impl RustOps {
             |s| self.array_f64.relu(s),
         )
     }
+
+    #[args(inplace = "false")]
+    fn sigmoid<'py>(
+        &self,
+        py: Python<'py>,
+        x: PyArrayDynFloat<'py>,
+        inplace: bool,
+    ) -> PyResult<PyArrayDynFloat<'py>> {
+        Self::elementwise_op(
+            py,
+            x,
+            inplace,
+            |s| self.array_f32.logistic_function(s),
+            |s| self.array_f64.logistic_function(s),
+        )
+    }
 }
 
 impl RustOps {

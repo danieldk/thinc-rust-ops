@@ -1,3 +1,5 @@
+pub(crate) mod activation;
+
 mod array;
 pub(crate) mod vector;
 
