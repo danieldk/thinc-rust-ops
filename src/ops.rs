@@ -35,8 +35,8 @@ impl<'a> IntoPy<PyObject> for PyArrayDynFloat<'a> {
 
 #[pyclass(subclass)]
 pub struct RustOps {
-    array_f32: Box<dyn Array<f32>>,
-    array_f64: Box<dyn Array<f64>>,
+    array_f32: Box<dyn Array<Scalar = f32>>,
+    array_f64: Box<dyn Array<Scalar = f64>>,
 }
 
 #[pymethods]
