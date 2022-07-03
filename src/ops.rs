@@ -185,6 +185,22 @@ impl RustOps {
             |s| self.array_f64.logistic_function(s),
         )
     }
+
+    #[args(inplace = "false")]
+    fn swish<'py>(
+        &self,
+        py: Python<'py>,
+        x: PyArrayDynFloat<'py>,
+        inplace: bool,
+    ) -> PyResult<PyArrayDynFloat<'py>> {
+        Self::elementwise_op(
+            py,
+            x,
+            inplace,
+            |s| self.array_f32.swish(s),
+            |s| self.array_f64.swish(s),
+        )
+    }
 }
 
 impl RustOps {

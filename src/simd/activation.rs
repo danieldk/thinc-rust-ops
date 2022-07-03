@@ -7,6 +7,8 @@ pub trait Activation {
     type Float;
 
     unsafe fn logistic_function(x: Self::Float) -> Self::Float;
+
+    unsafe fn swish(x: Self::Float) -> Self::Float;
 }
 
 impl<V, T> Activation for V
@@ -19,5 +21,9 @@ where
     unsafe fn logistic_function(x: Self::Float) -> Self::Float {
         let one = V::splat(<V::FloatScalar as NumCast>::from(1.0).unwrap());
         V::div(one, V::add(V::exp(V::neg(x)), one))
+    }
+
+    unsafe fn swish(x: Self::Float) -> Self::Float {
+        V::mul(x, Self::logistic_function(x))
     }
 }
