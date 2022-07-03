@@ -2,6 +2,7 @@
 use std::arch::is_aarch64_feature_detected;
 use std::ops::Neg;
 
+use crate::simd::activation::Activation;
 use num_traits::{NumCast, One, Zero};
 
 #[cfg(target_arch = "x86_64")]
@@ -53,12 +54,15 @@ pub trait Array: Send + Sync {
 
     fn hard_tanh(&self, a: &mut [Self::Scalar]);
 
+    fn logistic_function(&self, a: &mut [Self::Scalar]);
+
     fn relu(&self, a: &mut [Self::Scalar]);
 }
 
-impl<V> Array for V
+impl<V, T> Array for V
 where
-    V: SimdVector,
+    T: Copy,
+    V: Activation<Float = T> + SimdVector<Float = T>,
 {
     type Scalar = V::FloatScalar;
 
@@ -104,6 +108,17 @@ where
             Self::Scalar::one().neg(),
             Self::Scalar::one(),
         )
+    }
+
+    fn logistic_function(&self, a: &mut [Self::Scalar]) {
+        let smaller = V::Lower::default();
+        unsafe {
+            V::apply_elementwise(
+                |v| V::logistic_function(v),
+                |a| smaller.logistic_function(a),
+                a,
+            );
+        }
     }
 
     fn relu(&self, a: &mut [Self::Scalar]) {
