@@ -1,9 +1,8 @@
 #[cfg(target_arch = "aarch64")]
 use std::arch::is_aarch64_feature_detected;
-use std::ops::Neg;
 
 use crate::simd::activation::Activation;
-use num_traits::{NumCast, One, Zero};
+use num_traits::Float;
 
 #[cfg(target_arch = "x86_64")]
 use crate::simd::vector::avx::AVX32;
@@ -61,12 +60,13 @@ pub trait Array: Send + Sync {
     fn swish(&self, a: &mut [Self::Scalar]);
 }
 
-impl<V, T> Array for V
+impl<V, T, U> Array for V
 where
     T: Copy,
-    V: Activation<Float = T> + SimdVector<Float = T>,
+    U: Float,
+    V: Activation<Float = T, FloatScalar = U> + SimdVector<Float = T, FloatScalar = U>,
 {
-    type Scalar = V::FloatScalar;
+    type Scalar = U;
 
     fn clipped_linear(
         &self,
@@ -78,14 +78,8 @@ where
     ) {
         let lower = V::Lower::default();
         unsafe {
-            let v_min_val = V::splat(min_val);
-            let v_max_val = V::splat(max_val);
-
             V::apply_elementwise(
-                |v| {
-                    let v = V::add_scalar(V::mul_scalar(v, slope), offset);
-                    V::vmin(V::vmax(v, v_min_val), v_max_val)
-                },
+                |v| V::clipped_linear(v, slope, offset, min_val, max_val),
                 |a| lower.clipped_linear(a, slope, offset, min_val, max_val),
                 a,
             )
@@ -93,23 +87,13 @@ where
     }
 
     fn hard_sigmoid(&self, a: &mut [Self::Scalar]) {
-        self.clipped_linear(
-            a,
-            <Self::Scalar as NumCast>::from(0.2).unwrap(),
-            <Self::Scalar as NumCast>::from(0.5).unwrap(),
-            Self::Scalar::zero(),
-            Self::Scalar::one(),
-        )
+        let lower = V::Lower::default();
+        unsafe { V::apply_elementwise(|v| V::hard_sigmoid(v), |a| lower.hard_sigmoid(a), a) }
     }
 
     fn hard_tanh(&self, a: &mut [Self::Scalar]) {
-        self.clipped_linear(
-            a,
-            <Self::Scalar as NumCast>::from(1.).unwrap(),
-            <Self::Scalar as NumCast>::from(0.).unwrap(),
-            Self::Scalar::one().neg(),
-            Self::Scalar::one(),
-        )
+        let lower = V::Lower::default();
+        unsafe { V::apply_elementwise(|v| V::hard_tanh(v), |a| lower.hard_tanh(a), a) }
     }
 
     fn logistic_function(&self, a: &mut [Self::Scalar]) {
@@ -126,8 +110,7 @@ where
     fn relu(&self, a: &mut [Self::Scalar]) {
         let smaller = V::Lower::default();
         unsafe {
-            let zero = V::splat(Self::Scalar::zero());
-            V::apply_elementwise(|v| V::vmax(v, zero), |a| smaller.relu(a), a);
+            V::apply_elementwise(|v| V::relu(v), |a| smaller.relu(a), a);
         }
     }
 
