@@ -13,8 +13,6 @@ use pyo3::{pymodule, PyResult, Python};
 mod ops;
 use ops::RustOps;
 
-mod elementary;
-
 pub(crate) mod simd;
 
 #[pymodule]

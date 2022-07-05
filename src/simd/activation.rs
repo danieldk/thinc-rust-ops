@@ -1,6 +1,6 @@
 use num_traits::NumCast;
 
-use crate::elementary::Elementary;
+use crate::simd::elementary::Elementary;
 use crate::simd::vector::SimdVector;
 
 pub trait Activation {
