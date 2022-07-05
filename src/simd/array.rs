@@ -37,6 +37,15 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
     (Box::new(ScalarVector32), Box::new(ScalarVector64))
 }
 
+macro_rules! unary_activation {
+    ($j:ident) => {
+        fn $j(&self, a: &mut [Self::Scalar]) {
+            let lower = V::Lower::default();
+            unsafe { V::apply_elementwise(|v| V::$j(v), |a| lower.$j(a), a) }
+        }
+    };
+}
+
 pub trait Array: Send + Sync {
     type Scalar;
 
@@ -86,38 +95,9 @@ where
         }
     }
 
-    fn hard_sigmoid(&self, a: &mut [Self::Scalar]) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::hard_sigmoid(v), |a| lower.hard_sigmoid(a), a) }
-    }
-
-    fn hard_tanh(&self, a: &mut [Self::Scalar]) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::hard_tanh(v), |a| lower.hard_tanh(a), a) }
-    }
-
-    fn logistic_function(&self, a: &mut [Self::Scalar]) {
-        let smaller = V::Lower::default();
-        unsafe {
-            V::apply_elementwise(
-                |v| V::logistic_function(v),
-                |a| smaller.logistic_function(a),
-                a,
-            );
-        }
-    }
-
-    fn relu(&self, a: &mut [Self::Scalar]) {
-        let smaller = V::Lower::default();
-        unsafe {
-            V::apply_elementwise(|v| V::relu(v), |a| smaller.relu(a), a);
-        }
-    }
-
-    fn swish(&self, a: &mut [Self::Scalar]) {
-        let smaller = V::Lower::default();
-        unsafe {
-            V::apply_elementwise(|v| V::swish(v), |a| smaller.swish(a), a);
-        }
-    }
+    unary_activation!(hard_sigmoid);
+    unary_activation!(hard_tanh);
+    unary_activation!(logistic_function);
+    unary_activation!(relu);
+    unary_activation!(swish);
 }
