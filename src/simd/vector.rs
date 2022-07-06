@@ -348,9 +348,9 @@ pub mod avx {
     use num_traits::Float;
 
     #[derive(Default)]
-    pub struct AVX32;
+    pub struct AVXVector32;
 
-    impl SimdVector for AVX32 {
+    impl SimdVector for AVXVector32 {
         type Lower = ScalarVector32;
         type Float = __m256;
         type FloatScalar = f32;
@@ -461,9 +461,9 @@ pub mod avx {
     }
 
     #[derive(Default)]
-    pub struct AVX64;
+    pub struct AVXVector64;
 
-    impl SimdVector for AVX64 {
+    impl SimdVector for AVXVector64 {
         type Lower = ScalarVector64;
         type Float = __m256d;
         type FloatScalar = f64;

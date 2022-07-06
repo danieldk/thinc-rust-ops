@@ -92,7 +92,7 @@ mod tests {
 
     use super::Elementary;
     #[cfg(feature = "test_avx")]
-    use crate::simd::vector::avx::{AVX32, AVX64};
+    use crate::simd::vector::avx::{AVXVector32, AVXVector64};
     #[cfg(target_arch = "aarch64")]
     use crate::simd::vector::neon::{NeonVector32, NeonVector64};
     use crate::simd::vector::{ScalarVector32, ScalarVector64, SimdVector};
@@ -135,12 +135,12 @@ mod tests {
 
         #[cfg(feature = "test_avx")]
         fn avx_exp_close_to_std_exp_f32(v: f32) -> bool {
-            exp_close_to_std_exp::<AVX32>(v)
+            exp_close_to_std_exp::<AVXVector32>(v)
         }
 
         #[cfg(feature = "test_avx")]
         fn avx_exp_close_to_std_exp_f64(v: f64) -> bool {
-            exp_close_to_std_exp::<AVX64>(v)
+            exp_close_to_std_exp::<AVXVector64>(v)
         }
 
         #[cfg(target_arch = "aarch64")]
