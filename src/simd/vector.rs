@@ -35,7 +35,7 @@ pub trait SimdVector: Default + Send + Sync {
     type FloatScalarArray: AsSlice<Element = Self::FloatScalar>;
     type Int: Copy;
     type IntScalar: PrimInt;
-    type UInt: Copy;
+    type Mask: Copy;
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float;
 
@@ -43,20 +43,20 @@ pub trait SimdVector: Default + Send + Sync {
     unsafe fn add_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float;
 
     /// Select bits which are set in `a` in `b` or otherwise `c`.
-    unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float;
+    unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float;
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float;
 
     /// Round to largest integers lower than or equal to the given numbers.
     unsafe fn floor(a: Self::Float) -> Self::Float;
 
-    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt;
+    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask;
 
     /// If a is greater than b, set all corresponding lanes to 1.
-    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt;
+    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask;
 
     /// If a is less than b, set all corresponding lanes to 1.
-    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt;
+    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask;
 
     /// Vector element-wise multiplication.
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float;
@@ -102,7 +102,7 @@ impl SimdVector for ScalarVector32 {
         [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = i32;
     type IntScalar = i32;
-    type UInt = u32;
+    type Mask = u32;
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         a + b
@@ -112,7 +112,7 @@ impl SimdVector for ScalarVector32 {
         a + b
     }
 
-    unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
+    unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
     }
 
@@ -124,7 +124,7 @@ impl SimdVector for ScalarVector32 {
         a.floor()
     }
 
-    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a == b {
             !0
         } else {
@@ -132,7 +132,7 @@ impl SimdVector for ScalarVector32 {
         }
     }
 
-    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a > b {
             !0
         } else {
@@ -140,7 +140,7 @@ impl SimdVector for ScalarVector32 {
         }
     }
 
-    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a < b {
             !0
         } else {
@@ -221,7 +221,7 @@ impl SimdVector for ScalarVector64 {
         [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = i64;
     type IntScalar = i64;
-    type UInt = u64;
+    type Mask = u64;
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         a + b
@@ -231,7 +231,7 @@ impl SimdVector for ScalarVector64 {
         a + b
     }
 
-    unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
+    unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
     }
 
@@ -243,7 +243,7 @@ impl SimdVector for ScalarVector64 {
         a.floor()
     }
 
-    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a == b {
             !0
         } else {
@@ -251,7 +251,7 @@ impl SimdVector for ScalarVector64 {
         }
     }
 
-    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a > b {
             !0
         } else {
@@ -259,7 +259,7 @@ impl SimdVector for ScalarVector64 {
         }
     }
 
-    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
+    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
         if a < b {
             !0
         } else {
@@ -333,13 +333,13 @@ pub mod avx {
     use aligned::{Aligned, A32};
     use std::arch::x86_64::{
         __m256, __m256d, __m256i, _mm256_add_pd, _mm256_add_ps, _mm256_and_pd, _mm256_and_ps,
-        _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castpd_si256, _mm256_castsi256_pd,
-        _mm256_castsi256_ps, _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd,
-        _mm256_div_ps, _mm256_floor_pd, _mm256_floor_ps, _mm256_loadu_pd, _mm256_loadu_ps,
-        _mm256_loadu_si256, _mm256_max_pd, _mm256_max_ps, _mm256_min_pd, _mm256_min_ps,
-        _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd, _mm256_or_ps, _mm256_set1_pd, _mm256_set1_ps,
-        _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd,
-        _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
+        _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castsi256_pd, _mm256_castsi256_ps,
+        _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps,
+        _mm256_floor_pd, _mm256_floor_ps, _mm256_loadu_pd, _mm256_loadu_ps, _mm256_loadu_si256,
+        _mm256_max_pd, _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps,
+        _mm256_or_pd, _mm256_or_ps, _mm256_set1_pd, _mm256_set1_ps, _mm256_store_pd,
+        _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps,
+        _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
     };
     use std::mem;
 
@@ -361,7 +361,7 @@ pub mod avx {
         >;
         type Int = __m256i;
         type IntScalar = i32;
-        type UInt = __m256;
+        type Mask = __m256;
 
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             _mm256_add_ps(a, b)
@@ -372,7 +372,7 @@ pub mod avx {
             _mm256_add_ps(a, b_simd)
         }
 
-        unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
+        unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
             // Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
             let u = _mm256_and_ps(a, b);
             let v = _mm256_andnot_ps(a, c);
@@ -387,15 +387,15 @@ pub mod avx {
             _mm256_floor_ps(a)
         }
 
-        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
             _mm256_cmp_ps::<_CMP_EQ_OQ>(a, b)
         }
 
-        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
             _mm256_cmp_ps::<_CMP_GT_OQ>(a, b)
         }
 
-        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
             _mm256_cmp_ps::<_CMP_LT_OQ>(a, b)
         }
 
@@ -474,7 +474,7 @@ pub mod avx {
         >;
         type Int = __m256i;
         type IntScalar = i64;
-        type UInt = __m256i;
+        type Mask = __m256d;
 
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             _mm256_add_pd(a, b)
@@ -485,8 +485,7 @@ pub mod avx {
             _mm256_add_pd(a, b_simd)
         }
 
-        unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
-            let a = _mm256_castsi256_pd(a);
+        unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
             let u = _mm256_and_pd(a, b);
             let v = _mm256_andnot_pd(a, c);
             _mm256_or_pd(u, v)
@@ -500,16 +499,16 @@ pub mod avx {
             _mm256_floor_pd(a)
         }
 
-        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
-            _mm256_castpd_si256(_mm256_cmp_pd::<_CMP_EQ_OQ>(a, b))
+        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
+            _mm256_cmp_pd::<_CMP_EQ_OQ>(a, b)
         }
 
-        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
-            _mm256_castpd_si256(_mm256_cmp_pd::<_CMP_GT_OQ>(a, b))
+        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
+            _mm256_cmp_pd::<_CMP_GT_OQ>(a, b)
         }
 
-        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
-            _mm256_castpd_si256(_mm256_cmp_pd::<_CMP_LT_OQ>(a, b))
+        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
+            _mm256_cmp_pd::<_CMP_LT_OQ>(a, b)
         }
 
         unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -604,7 +603,7 @@ pub mod neon {
             mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
         type Int = int32x4_t;
         type IntScalar = i32;
-        type UInt = uint32x4_t;
+        type Mask = uint32x4_t;
 
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             vaddq_f32(a, b)
@@ -615,7 +614,7 @@ pub mod neon {
             vaddq_f32(a, b_simd)
         }
 
-        unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
+        unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
             vbslq_f32(a, b, c)
         }
 
@@ -627,15 +626,15 @@ pub mod neon {
             vrndmq_f32(a)
         }
 
-        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
             vceqq_f32(a, b)
         }
 
-        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
             vcgtq_f32(a, b)
         }
 
-        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
             vcltq_f32(a, b)
         }
 
@@ -709,7 +708,7 @@ pub mod neon {
             mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
         type Int = int64x2_t;
         type IntScalar = i64;
-        type UInt = uint64x2_t;
+        type Mask = uint64x2_t;
 
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             vaddq_f64(a, b)
@@ -720,7 +719,7 @@ pub mod neon {
             vaddq_f64(a, b_simd)
         }
 
-        unsafe fn bitwise_select(a: Self::UInt, b: Self::Float, c: Self::Float) -> Self::Float {
+        unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
             vbslq_f64(a, b, c)
         }
 
@@ -732,15 +731,15 @@ pub mod neon {
             vrndmq_f64(a)
         }
 
-        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
             vceqq_f64(a, b)
         }
 
-        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
             vcgtq_f64(a, b)
         }
 
-        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::UInt {
+        unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
             vcltq_f64(a, b)
         }
 
