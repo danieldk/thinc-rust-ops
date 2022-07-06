@@ -5,9 +5,9 @@ use crate::simd::activation::Activation;
 use num_traits::Float;
 
 #[cfg(target_arch = "x86_64")]
-use crate::simd::vector::avx::AVX32;
+use crate::simd::vector::avx::AVXVector32;
 #[cfg(target_arch = "x86_64")]
-use crate::simd::vector::avx::AVX64;
+use crate::simd::vector::avx::AVXVector64;
 #[cfg(target_arch = "aarch64")]
 use crate::simd::vector::neon::NeonVector32;
 #[cfg(target_arch = "aarch64")]
@@ -26,7 +26,7 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
 #[cfg(target_arch = "x86_64")]
 pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
     if is_x86_feature_detected!("avx") {
-        (Box::new(AVX32), Box::new(AVX64))
+        (Box::new(AVXVector32), Box::new(AVXVector64))
     } else {
         (Box::new(ScalarVector32), Box::new(ScalarVector64))
     }
