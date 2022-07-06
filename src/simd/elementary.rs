@@ -2,6 +2,16 @@ use num_traits::{Float, FloatConst, NumCast, One, Zero};
 
 use crate::simd::vector::{FloatingPointProps, SimdVector};
 
+mod fasterf_poly_coeff {
+    // Constants and approximation from Abramowitz and Stegun, 1964.
+    pub const COEFF_A1: f64 = 0.254829592;
+    pub const COEFF_A2: f64 = -0.284496736;
+    pub const COEFF_A3: f64 = 1.421413741;
+    pub const COEFF_A4: f64 = -1.453152027;
+    pub const COEFF_A5: f64 = 1.061405429;
+    pub const COEFF_P: f64 = 0.3275911;
+}
+
 mod fastexp_poly_coeff {
     // Constants from Malossi et al., 2015
     pub const POLY_COEFF_5_0: f64 = 1.068_237_537_102_394_8e-7;
@@ -14,6 +24,9 @@ mod fastexp_poly_coeff {
 
 pub trait Elementary {
     type Float;
+
+    unsafe fn erf(x: Self::Float) -> Self::Float;
+
     unsafe fn exp(x: Self::Float) -> Self::Float;
 }
 
@@ -22,6 +35,30 @@ where
     V: SimdVector,
 {
     type Float = V::Float;
+
+    unsafe fn erf(x: Self::Float) -> Self::Float {
+        let one = V::splat(V::FloatScalar::one());
+        let coeff_p = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_P).unwrap();
+        let coeff_a1 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A1).unwrap();
+        let coeff_a2 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A2).unwrap();
+        let coeff_a3 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A3).unwrap();
+        let coeff_a4 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A4).unwrap();
+        let coeff_a5 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A5).unwrap();
+
+        let x_abs = V::abs(x);
+        let neg_x_sq = V::neg(V::mul(x, x));
+        let t = V::div(one, V::add(V::mul_scalar(x_abs, coeff_p), one));
+
+        let mut tp = V::mul_scalar(t, coeff_a5);
+        tp = V::mul(t, V::add_scalar(tp, coeff_a4));
+        tp = V::mul(t, V::add_scalar(tp, coeff_a3));
+        tp = V::mul(t, V::add_scalar(tp, coeff_a2));
+        tp = V::mul(t, V::add_scalar(tp, coeff_a1));
+
+        let erf_abs = V::sub(one, V::mul(tp, Self::exp(neg_x_sq)));
+
+        V::copy_sign(x, erf_abs)
+    }
 
     unsafe fn exp(mut x: Self::Float) -> Self::Float {
         let inf = V::splat(V::FloatScalar::infinity());
@@ -87,7 +124,8 @@ mod tests {
 
     use approx::relative_eq;
     use as_slice::AsSlice;
-    use num_traits::{Float, ToPrimitive};
+    use libm::erf;
+    use num_traits::{Float, NumCast, ToPrimitive};
     use quickcheck::quickcheck;
 
     use super::Elementary;
@@ -96,6 +134,40 @@ mod tests {
     #[cfg(target_arch = "aarch64")]
     use crate::simd::vector::neon::{NeonVector32, NeonVector64};
     use crate::simd::vector::{ScalarVector32, ScalarVector64, SimdVector};
+
+    fn erf_close_to_libm_erf<S>(v: S::FloatScalar) -> bool
+    where
+        S: SimdVector,
+    {
+        let check_erf =
+            <S::FloatScalar as NumCast>::from(erf(<f64 as NumCast>::from(v).unwrap())).unwrap();
+        let r = {
+            unsafe {
+                S::to_float_scalar_array(S::erf(S::splat(v))).as_slice()[0]
+                    .to_f64()
+                    .unwrap()
+            }
+        };
+        eprintln!("v: {:?}, r: {}, c: {:?}", v, r, check_erf);
+        assert_eq!(r.is_nan(), check_erf.is_nan());
+        if v.is_nan() {
+            return true;
+        }
+
+        let max_relative = if mem::size_of::<S::FloatScalar>() == 4 {
+            // 1e-5 fails sometimes in many repetitions of the test, e.g.: 51.304375
+            1e-4
+        } else {
+            1e-6
+        };
+
+        relative_eq!(
+            r,
+            check_erf.to_f64().unwrap(),
+            max_relative = max_relative,
+            epsilon = 1e-7
+        )
+    }
 
     fn exp_close_to_std_exp<S>(v: S::FloatScalar) -> bool
     where
@@ -125,6 +197,34 @@ mod tests {
     }
 
     quickcheck! {
+        #[cfg(feature = "test_avx")]
+        fn avx_erf_close_to_libm_erf_f32(v: f32) -> bool {
+            erf_close_to_libm_erf::<AVXVector32>(v)
+        }
+
+        #[cfg(feature = "test_avx")]
+        fn avx_erf_close_to_libm_erf_f64(v: f64) -> bool {
+            erf_close_to_libm_erf::<AVXVector64>(v)
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        fn neon_erf_close_to_libm_erf_f32(v: f32) -> bool {
+            erf_close_to_libm_erf::<NeonVector32>(v)
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        fn neon_erf_close_to_libm_erf_f64(v: f64) -> bool {
+            erf_close_to_libm_erf::<NeonVector64>(v)
+        }
+
+        fn scalar_erf_close_to_libm_erf_f32(v: f32) -> bool {
+            erf_close_to_libm_erf::<ScalarVector32>(v)
+        }
+
+        fn scalar_erf_close_to_libm_erf_f64(v: f64) -> bool {
+            erf_close_to_libm_erf::<ScalarVector64>(v)
+        }
+
         fn scalar_exp_close_to_std_exp_f32(v: f32) -> bool {
             exp_close_to_std_exp::<ScalarVector32>(v)
         }

@@ -1,4 +1,5 @@
 use as_slice::AsSlice;
+use std::fmt::Debug;
 use std::mem;
 
 use num_traits::{Float, FloatConst, PrimInt};
@@ -31,11 +32,14 @@ impl FloatingPointProps for f64 {
 pub trait SimdVector: Default + Send + Sync {
     type Lower: SimdVector<FloatScalar = Self::FloatScalar>;
     type Float: Copy;
-    type FloatScalar: Float + FloatConst + FloatingPointProps;
+    type FloatScalar: Debug + Float + FloatConst + FloatingPointProps;
     type FloatScalarArray: AsSlice<Element = Self::FloatScalar>;
     type Int: Copy;
     type IntScalar: PrimInt;
     type Mask: Copy;
+
+    /// Absolute value.
+    unsafe fn abs(a: Self::Float) -> Self::Float;
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float;
 
@@ -44,6 +48,8 @@ pub trait SimdVector: Default + Send + Sync {
 
     /// Select bits which are set in `a` in `b` or otherwise `c`.
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float;
+
+    unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float;
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float;
 
@@ -104,6 +110,10 @@ impl SimdVector for ScalarVector32 {
     type IntScalar = i32;
     type Mask = u32;
 
+    unsafe fn abs(a: Self::Float) -> Self::Float {
+        a.abs()
+    }
+
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         a + b
     }
@@ -114,6 +124,10 @@ impl SimdVector for ScalarVector32 {
 
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
+    }
+
+    unsafe fn copy_sign(sign: Self::Float, dest: Self::Float) -> Self::Float {
+        dest.copysign(sign)
     }
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -223,6 +237,10 @@ impl SimdVector for ScalarVector64 {
     type IntScalar = i64;
     type Mask = u64;
 
+    unsafe fn abs(a: Self::Float) -> Self::Float {
+        a.abs()
+    }
+
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         a + b
     }
@@ -233,6 +251,10 @@ impl SimdVector for ScalarVector64 {
 
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
+    }
+
+    unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
+        dest.copysign(sign_src)
     }
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -337,15 +359,17 @@ pub mod avx {
         _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps,
         _mm256_floor_pd, _mm256_floor_ps, _mm256_loadu_pd, _mm256_loadu_ps, _mm256_loadu_si256,
         _mm256_max_pd, _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps,
-        _mm256_or_pd, _mm256_or_ps, _mm256_set1_pd, _mm256_set1_ps, _mm256_store_pd,
-        _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps,
-        _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
+        _mm256_or_pd, _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x, _mm256_set1_pd,
+        _mm256_set1_ps, _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps,
+        _mm256_sub_pd, _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ,
+        _CMP_LT_OQ,
     };
     use std::mem;
+    use std::ops::Neg;
 
     use super::{ScalarVector32, SimdVector};
     use crate::simd::vector::ScalarVector64;
-    use num_traits::Float;
+    use num_traits::{Float, Zero};
 
     #[derive(Default)]
     pub struct AVXVector32;
@@ -363,6 +387,11 @@ pub mod avx {
         type IntScalar = i32;
         type Mask = __m256;
 
+        unsafe fn abs(a: Self::Float) -> Self::Float {
+            let mask = _mm256_set1_epi32(0x7fffffff);
+            _mm256_and_ps(a, _mm256_castsi256_ps(mask))
+        }
+
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             _mm256_add_ps(a, b)
         }
@@ -377,6 +406,12 @@ pub mod avx {
             let u = _mm256_and_ps(a, b);
             let v = _mm256_andnot_ps(a, c);
             _mm256_or_ps(u, v)
+        }
+
+        unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
+            // Negative zero has all bits unset, except the sign bit.
+            let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
+            Self::bitwise_select(sign_bit_mask, sign_src, dest)
         }
 
         unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -476,6 +511,11 @@ pub mod avx {
         type IntScalar = i64;
         type Mask = __m256d;
 
+        unsafe fn abs(a: Self::Float) -> Self::Float {
+            let mask = _mm256_set1_epi64x(0x7fffffffffffffff);
+            _mm256_and_pd(a, _mm256_castsi256_pd(mask))
+        }
+
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             _mm256_add_pd(a, b)
         }
@@ -489,6 +529,12 @@ pub mod avx {
             let u = _mm256_and_pd(a, b);
             let v = _mm256_andnot_pd(a, c);
             _mm256_or_pd(u, v)
+        }
+
+        unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
+            // Negative zero has all bits unset, except the sign bit.
+            let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
+            Self::bitwise_select(sign_bit_mask, sign_src, dest)
         }
 
         unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -579,15 +625,19 @@ pub mod avx {
 
 #[cfg(all(target_arch = "aarch64"))]
 pub mod neon {
+    use num_traits::Zero;
     use std::arch::aarch64::{
-        float32x4_t, float64x2_t, int32x4_t, int64x2_t, uint32x4_t, uint64x2_t, vaddq_f32,
-        vaddq_f64, vbslq_f32, vbslq_f64, vceqq_f32, vceqq_f64, vcgtq_f32, vcgtq_f64, vcltq_f32,
-        vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64, vdivq_f32, vdivq_f64, vdupq_n_f32, vdupq_n_f64,
-        vld1q_f32, vld1q_f64, vmaxq_f32, vmaxq_f64, vminq_f32, vminq_f64, vmulq_f32, vmulq_f64,
-        vnegq_f32, vnegq_f64, vreinterpretq_f32_s32, vreinterpretq_f64_s64, vrndmq_f32, vrndmq_f64,
-        vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
+        float32x4_t, float64x2_t, int32x4_t, int64x2_t, uint32x4_t, uint64x2_t, vabsq_f32,
+        vabsq_f64, vaddq_f32, vaddq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64, vceqq_f32,
+        vceqq_f64, vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64,
+        vdivq_f32, vdivq_f64, vdupq_n_f32, vdupq_n_f64, vld1q_f32, vld1q_f64, vmaxq_f32, vmaxq_f64,
+        vminq_f32, vminq_f64, vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64,
+        vreinterpretq_f32_s32, vreinterpretq_f32_u32, vreinterpretq_f64_s64, vreinterpretq_f64_u64,
+        vreinterpretq_u32_f32, vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64,
+        vsubq_f32, vsubq_f64,
     };
     use std::mem;
+    use std::ops::Neg;
 
     use super::{ScalarVector32, SimdVector};
     use crate::simd::vector::ScalarVector64;
@@ -605,6 +655,10 @@ pub mod neon {
         type IntScalar = i32;
         type Mask = uint32x4_t;
 
+        unsafe fn abs(a: Self::Float) -> Self::Float {
+            vabsq_f32(a)
+        }
+
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             vaddq_f32(a, b)
         }
@@ -615,7 +669,20 @@ pub mod neon {
         }
 
         unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
-            vbslq_f32(a, b, c)
+            // We want to use the bit selection intrinsic, however it is currently broken:
+            // https://github.com/rust-lang/stdarch/issues/1191
+            // vbslq_f32(a, b, c)
+
+            let b = vreinterpretq_u32_f32(b);
+            let c = vreinterpretq_u32_f32(c);
+            let r = vorrq_u32(vandq_u32(a, b), vbicq_u32(c, a));
+            vreinterpretq_f32_u32(r)
+        }
+
+        unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
+            // Negative zero has all bits unset, except the sign bit.
+            let sign_bit_mask = vreinterpretq_u32_f32(Self::splat(Self::FloatScalar::zero().neg()));
+            Self::bitwise_select(sign_bit_mask, sign_src, dest)
         }
 
         unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -710,6 +777,10 @@ pub mod neon {
         type IntScalar = i64;
         type Mask = uint64x2_t;
 
+        unsafe fn abs(a: Self::Float) -> Self::Float {
+            vabsq_f64(a)
+        }
+
         unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
             vaddq_f64(a, b)
         }
@@ -720,7 +791,20 @@ pub mod neon {
         }
 
         unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
-            vbslq_f64(a, b, c)
+            // We want to use the bit selection intrinsic, however it is currently broken:
+            // https://github.com/rust-lang/stdarch/issues/1191
+            // vbslq_f64(a, b, c)
+
+            let b = vreinterpretq_u64_f64(b);
+            let c = vreinterpretq_u64_f64(c);
+            let r = vorrq_u64(vandq_u64(a, b), vbicq_u64(c, a));
+            vreinterpretq_f64_u64(r)
+        }
+
+        unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
+            // Negative zero has all bits unset, except the sign bit.
+            let sign_bit_mask = vreinterpretq_u64_f64(Self::splat(Self::FloatScalar::zero().neg()));
+            Self::bitwise_select(sign_bit_mask, sign_src, dest)
         }
 
         unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
