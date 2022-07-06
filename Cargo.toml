@@ -31,6 +31,7 @@ blis-src = { version = "0.2", default-features = false, features = ["serial", "c
 
 [dev-dependencies]
 approx = "0.5"
+libm = "0.2"
 quickcheck = "1"
 
 [package.metadata.maturin]
