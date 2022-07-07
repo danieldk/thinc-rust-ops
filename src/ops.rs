@@ -181,8 +181,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.logistic_function(s),
-            |s| self.array_f64.logistic_function(s),
+            |s| self.array_f32.logistic_cdf(s),
+            |s| self.array_f64.logistic_cdf(s),
         )
     }
 
