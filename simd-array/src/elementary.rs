@@ -148,9 +148,9 @@ mod tests {
 
         let max_relative = if mem::size_of::<S::FloatScalar>() == 4 {
             // 1e-5 fails sometimes in many repetitions of the test, e.g.: 51.304375
-            1e-4
-        } else {
             1e-6
+        } else {
+            1e-7
         };
 
         relative_eq!(
