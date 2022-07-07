@@ -59,6 +59,8 @@ pub trait Array: Send + Sync {
         max_val: Self::Scalar,
     );
 
+    fn gelu(&self, a: &mut [Self::Scalar]);
+
     fn hard_sigmoid(&self, a: &mut [Self::Scalar]);
 
     fn hard_tanh(&self, a: &mut [Self::Scalar]);
@@ -98,6 +100,7 @@ where
         }
     }
 
+    unary_activation!(gelu);
     unary_activation!(hard_sigmoid);
     unary_activation!(hard_tanh);
     unary_activation!(logistic_cdf);
