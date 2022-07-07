@@ -9,12 +9,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 accelerate-src = { version = "0.3", optional = true }
-aligned = "0.4"
-as-slice = "0.2"
 ndarray = { version = "0.15", features = ["blas"] }
-num-traits = "0.2"
 numpy = "0.16"
 pyo3 = { version = "0.16", features = ["extension-module", "abi3", "abi3-py37"] }
+simd-array = { path = "simd-array" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accelerate-src = { version = "0.3" }
@@ -28,11 +26,6 @@ intel-mkl-src = { version = "0.6" }
 
 [target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies]
 blis-src = { version = "0.2", default-features = false, features = ["serial", "cblas", "static"] }
-
-[dev-dependencies]
-approx = "0.5"
-libm = "0.2"
-quickcheck = "1"
 
 [package.metadata.maturin]
 python-source = "python"

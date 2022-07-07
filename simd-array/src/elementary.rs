@@ -1,6 +1,6 @@
 use num_traits::{Float, FloatConst, NumCast, One, Zero};
 
-use crate::simd::vector::{FloatingPointProps, SimdVector};
+use crate::vector::{FloatingPointProps, SimdVector};
 
 mod fasterf_poly_coeff {
     // Constants and approximation from Abramowitz and Stegun, 1964.
@@ -130,10 +130,10 @@ mod tests {
 
     use super::Elementary;
     #[cfg(feature = "test_avx")]
-    use crate::simd::vector::avx::{AVXVector32, AVXVector64};
+    use crate::vector::avx::{AVXVector32, AVXVector64};
     #[cfg(target_arch = "aarch64")]
-    use crate::simd::vector::neon::{NeonVector32, NeonVector64};
-    use crate::simd::vector::{ScalarVector32, ScalarVector64, SimdVector};
+    use crate::vector::neon::{NeonVector32, NeonVector64};
+    use crate::vector::{ScalarVector32, ScalarVector64, SimdVector};
 
     fn erf_close_to_libm_erf<S>(v: S::FloatScalar) -> bool
     where

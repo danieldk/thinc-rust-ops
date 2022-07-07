@@ -1,7 +1,7 @@
 use num_traits::{FloatConst, NumCast, One};
 
-use crate::simd::elementary::Elementary;
-use crate::simd::vector::SimdVector;
+use crate::elementary::Elementary;
+use crate::vector::SimdVector;
 
 pub trait Distribution {
     type Float;
