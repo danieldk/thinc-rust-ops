@@ -1,4 +1,4 @@
-use num_traits::{FloatConst, NumCast, One};
+use num_traits::{FloatConst, One};
 
 use crate::elementary::Elementary;
 use crate::vector::SimdVector;
@@ -21,7 +21,7 @@ where
     type Float = <V as SimdVector>::Float;
 
     unsafe fn normal_cdf(x: Self::Float) -> Self::Float {
-        let half = V::splat(<V::FloatScalar as NumCast>::from(0.5).unwrap());
+        let half = V::from_f64(0.5);
         let one = V::splat(V::FloatScalar::one());
         let sqrt_2_inv = V::splat(V::FloatScalar::one() / V::FloatScalar::SQRT_2());
         // 1/2 (1 + erf(x/sqrt(2)))

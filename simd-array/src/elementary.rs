@@ -38,22 +38,22 @@ where
 
     unsafe fn erf(x: Self::Float) -> Self::Float {
         let one = V::splat(V::FloatScalar::one());
-        let coeff_p = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_P).unwrap();
-        let coeff_a1 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A1).unwrap();
-        let coeff_a2 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A2).unwrap();
-        let coeff_a3 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A3).unwrap();
-        let coeff_a4 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A4).unwrap();
-        let coeff_a5 = <V::FloatScalar as NumCast>::from(fasterf_poly_coeff::COEFF_A5).unwrap();
+        let coeff_p = V::from_f64(fasterf_poly_coeff::COEFF_P);
+        let coeff_a1 = V::from_f64(fasterf_poly_coeff::COEFF_A1);
+        let coeff_a2 = V::from_f64(fasterf_poly_coeff::COEFF_A2);
+        let coeff_a3 = V::from_f64(fasterf_poly_coeff::COEFF_A3);
+        let coeff_a4 = V::from_f64(fasterf_poly_coeff::COEFF_A4);
+        let coeff_a5 = V::from_f64(fasterf_poly_coeff::COEFF_A5);
 
         let x_abs = V::abs(x);
         let neg_x_sq = V::neg(V::mul(x, x));
-        let t = V::div(one, V::add(V::mul_scalar(x_abs, coeff_p), one));
+        let t = V::div(one, V::add(V::mul(x_abs, coeff_p), one));
 
-        let mut tp = V::mul_scalar(t, coeff_a5);
-        tp = V::mul(t, V::add_scalar(tp, coeff_a4));
-        tp = V::mul(t, V::add_scalar(tp, coeff_a3));
-        tp = V::mul(t, V::add_scalar(tp, coeff_a2));
-        tp = V::mul(t, V::add_scalar(tp, coeff_a1));
+        let mut tp = V::mul(t, coeff_a5);
+        tp = V::mul(t, V::add(tp, coeff_a4));
+        tp = V::mul(t, V::add(tp, coeff_a3));
+        tp = V::mul(t, V::add(tp, coeff_a2));
+        tp = V::mul(t, V::add(tp, coeff_a1));
 
         let erf_abs = V::sub(one, V::mul(tp, Self::exp(neg_x_sq)));
 
@@ -73,18 +73,12 @@ where
                 * <V::IntScalar as NumCast>::from(V::FloatScalar::bias()).unwrap(),
         )
         .unwrap();
-        let poly_coeff_5_0 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_0).unwrap();
-        let poly_coeff_5_1 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_1).unwrap();
-        let poly_coeff_5_2 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_2).unwrap();
-        let poly_coeff_5_3 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_3).unwrap();
-        let poly_coeff_5_4 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_4).unwrap();
-        let poly_coeff_5_5 =
-            <V::FloatScalar as NumCast>::from(fastexp_poly_coeff::POLY_COEFF_5_5).unwrap();
+        let poly_coeff_5_0 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_0);
+        let poly_coeff_5_1 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_1);
+        let poly_coeff_5_2 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_2);
+        let poly_coeff_5_3 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_3);
+        let poly_coeff_5_4 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_4);
+        let poly_coeff_5_5 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_5);
 
         // Maximum positive value.
         let max_mask = V::gt(x, V::splat(V::FloatScalar::max_value().ln()));
@@ -98,16 +92,15 @@ where
         x = V::mul_scalar(x, V::FloatScalar::LOG2_E());
         let xf = V::sub(x, V::floor(x));
 
-        let mut factor = V::splat(poly_coeff_5_5);
-        factor = V::add_scalar(V::mul(factor, xf), poly_coeff_5_4);
-        factor = V::add_scalar(V::mul(factor, xf), poly_coeff_5_3);
-        factor = V::add_scalar(V::mul(factor, xf), poly_coeff_5_2);
-        factor = V::add_scalar(V::mul(factor, xf), poly_coeff_5_1);
-        factor = V::add_scalar(V::mul(factor, xf), poly_coeff_5_0);
+        let mut factor = poly_coeff_5_5;
+        factor = V::add(V::mul(factor, xf), poly_coeff_5_4);
+        factor = V::add(V::mul(factor, xf), poly_coeff_5_3);
+        factor = V::add(V::mul(factor, xf), poly_coeff_5_2);
+        factor = V::add(V::mul(factor, xf), poly_coeff_5_1);
+        factor = V::add(V::mul(factor, xf), poly_coeff_5_0);
 
         x = V::sub(x, factor);
 
-        //let cast = V::to_int(V::add_scalar(V::mul_scalar(x, coeff_a), coeff_b));
         let cast = V::to_int(V::add_scalar(V::mul_scalar(x, coeff_a), coeff_b));
 
         x = V::reinterpret_float_signed(cast);
@@ -148,7 +141,6 @@ mod tests {
                     .unwrap()
             }
         };
-        eprintln!("v: {:?}, r: {}, c: {:?}", v, r, check_erf);
         assert_eq!(r.is_nan(), check_erf.is_nan());
         if v.is_nan() {
             return true;
