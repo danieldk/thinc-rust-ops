@@ -2,6 +2,7 @@
 use std::arch::is_aarch64_feature_detected;
 
 use crate::simd::activation::Activation;
+use crate::simd::distribution::Distribution;
 use num_traits::Float;
 
 #[cfg(target_arch = "x86_64")]
@@ -62,7 +63,7 @@ pub trait Array: Send + Sync {
 
     fn hard_tanh(&self, a: &mut [Self::Scalar]);
 
-    fn logistic_function(&self, a: &mut [Self::Scalar]);
+    fn logistic_cdf(&self, a: &mut [Self::Scalar]);
 
     fn relu(&self, a: &mut [Self::Scalar]);
 
@@ -73,7 +74,9 @@ impl<V, T, U> Array for V
 where
     T: Copy,
     U: Float,
-    V: Activation<Float = T, FloatScalar = U> + SimdVector<Float = T, FloatScalar = U>,
+    V: Activation<Float = T, FloatScalar = U>
+        + Distribution<Float = T>
+        + SimdVector<Float = T, FloatScalar = U>,
 {
     type Scalar = U;
 
@@ -97,7 +100,7 @@ where
 
     unary_activation!(hard_sigmoid);
     unary_activation!(hard_tanh);
-    unary_activation!(logistic_function);
+    unary_activation!(logistic_cdf);
     unary_activation!(relu);
     unary_activation!(swish);
 }

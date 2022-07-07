@@ -1,3 +1,4 @@
+use crate::simd::distribution::Distribution;
 use num_traits::{NumCast, One, Zero};
 use std::ops::Neg;
 
@@ -20,8 +21,6 @@ pub trait Activation {
 
     unsafe fn hard_tanh(x: Self::Float) -> Self::Float;
 
-    unsafe fn logistic_function(x: Self::Float) -> Self::Float;
-
     unsafe fn relu(x: Self::Float) -> Self::Float;
 
     unsafe fn swish(x: Self::Float) -> Self::Float;
@@ -30,7 +29,7 @@ pub trait Activation {
 impl<V, T> Activation for V
 where
     T: Copy,
-    V: SimdVector<Float = T> + Elementary<Float = T>,
+    V: Distribution<Float = T> + Elementary<Float = T> + SimdVector<Float = T>,
 {
     type Float = <V as SimdVector>::Float;
     type FloatScalar = <V as SimdVector>::FloatScalar;
@@ -68,17 +67,12 @@ where
         )
     }
 
-    unsafe fn logistic_function(x: Self::Float) -> Self::Float {
-        let one = V::splat(<V::FloatScalar as NumCast>::from(1.0).unwrap());
-        V::div(one, V::add(V::exp(V::neg(x)), one))
-    }
-
     unsafe fn relu(x: Self::Float) -> Self::Float {
         let zero = V::splat(V::FloatScalar::zero());
         V::vmax(x, zero)
     }
 
     unsafe fn swish(x: Self::Float) -> Self::Float {
-        V::mul(x, Self::logistic_function(x))
+        V::mul(x, Self::logistic_cdf(x))
     }
 }
