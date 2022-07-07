@@ -2,7 +2,7 @@ use as_slice::AsSlice;
 use std::fmt::Debug;
 use std::mem;
 
-use num_traits::{Float, FloatConst, PrimInt};
+use num_traits::{Float, FloatConst, NumCast, PrimInt};
 
 pub trait FloatingPointProps {
     fn bias() -> usize;
@@ -55,6 +55,11 @@ pub trait SimdVector: Default + Send + Sync {
 
     /// Round to largest integers lower than or equal to the given numbers.
     unsafe fn floor(a: Self::Float) -> Self::Float;
+
+    /// Convert from f64 into the scalar float type and then splat.
+    unsafe fn from_f64(a: f64) -> Self::Float {
+        Self::splat(<Self::FloatScalar as NumCast>::from(a).unwrap())
+    }
 
     unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask;
 
