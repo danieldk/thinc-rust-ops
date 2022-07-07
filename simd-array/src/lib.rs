@@ -1,7 +1,7 @@
 pub(crate) mod activation;
 
 mod array;
-pub(crate) use array::{platform_arrays, Array};
+pub use array::{platform_arrays, Array};
 
 mod distribution;
 

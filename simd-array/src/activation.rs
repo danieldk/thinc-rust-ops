@@ -1,9 +1,9 @@
-use crate::simd::distribution::Distribution;
 use num_traits::{NumCast, One, Zero};
 use std::ops::Neg;
 
-use crate::simd::elementary::Elementary;
-use crate::simd::vector::SimdVector;
+use crate::distribution::Distribution;
+use crate::elementary::Elementary;
+use crate::vector::SimdVector;
 
 pub trait Activation {
     type Float;

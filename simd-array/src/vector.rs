@@ -368,7 +368,7 @@ pub mod avx {
     use std::ops::Neg;
 
     use super::{ScalarVector32, SimdVector};
-    use crate::simd::vector::ScalarVector64;
+    use crate::vector::ScalarVector64;
     use num_traits::{Float, Zero};
 
     #[derive(Default)]
@@ -640,7 +640,7 @@ pub mod neon {
     use std::ops::Neg;
 
     use super::{ScalarVector32, SimdVector};
-    use crate::simd::vector::ScalarVector64;
+    use crate::vector::ScalarVector64;
 
     #[derive(Default)]
     pub struct NeonVector32;

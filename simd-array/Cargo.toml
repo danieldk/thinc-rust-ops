@@ -1,0 +1,14 @@
+[package]
+name = "simd-array"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aligned = "0.4"
+as-slice = "0.2"
+num-traits = "0.2"
+
+[dev-dependencies]
+approx = "0.5"
+libm = "0.2"
+quickcheck = "1"

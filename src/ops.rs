@@ -3,7 +3,7 @@ use numpy::{PyArray2, PyArrayDyn, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::{pyclass, pymethods, FromPyObject, IntoPy, PyObject, PyResult, Python};
 
-use crate::simd::{platform_arrays, Array};
+use simd_array::{platform_arrays, Array};
 
 #[derive(FromPyObject)]
 enum PyArrayDynFloat<'a> {
