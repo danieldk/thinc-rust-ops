@@ -17,6 +17,8 @@ pub trait Activation {
         max_val: Self::FloatScalar,
     ) -> Self::Float;
 
+    unsafe fn gelu(x: Self::Float) -> Self::Float;
+
     unsafe fn hard_sigmoid(x: Self::Float) -> Self::Float;
 
     unsafe fn hard_tanh(x: Self::Float) -> Self::Float;
@@ -45,6 +47,10 @@ where
         let x_max_val = V::splat(max_val);
         let x = V::add_scalar(V::mul_scalar(x, slope), offset);
         V::vmin(V::vmax(x, x_min_val), x_max_val)
+    }
+
+    unsafe fn gelu(x: Self::Float) -> Self::Float {
+        V::mul(x, V::normal_cdf(x))
     }
 
     unsafe fn hard_sigmoid(x: Self::Float) -> Self::Float {

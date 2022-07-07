@@ -88,6 +88,22 @@ impl RustOps {
     }
 
     #[args(inplace = "false")]
+    fn gelu<'py>(
+        &self,
+        py: Python<'py>,
+        x: PyArrayDynFloat<'py>,
+        inplace: bool,
+    ) -> PyResult<PyArrayDynFloat<'py>> {
+        Self::elementwise_op(
+            py,
+            x,
+            inplace,
+            |s| self.array_f32.gelu(s),
+            |s| self.array_f64.gelu(s),
+        )
+    }
+
+    #[args(inplace = "false")]
     fn hard_sigmoid<'py>(
         &self,
         py: Python<'py>,
