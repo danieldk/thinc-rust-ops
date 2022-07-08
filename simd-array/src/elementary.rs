@@ -85,7 +85,7 @@ where
         let poly_coeff_5_5 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_5);
 
         // Maximum positive value.
-        let max_mask = V::gt(x, V::splat(V::FloatScalar::max_value().ln()));
+        let max_mask = V::gt(x, V::splat(V::FloatScalar::max_ln()));
 
         // Smallest positive normalized value.
         let smallest_positive_mask = V::lt(x, V::splat(V::FloatScalar::min_positive_value().ln()));
