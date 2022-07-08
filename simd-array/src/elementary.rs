@@ -64,15 +64,19 @@ where
         let inf = V::splat(V::FloatScalar::infinity());
         let zero = V::splat(V::FloatScalar::zero());
 
-        let coeff_a = <V::FloatScalar as NumCast>::from(
-            V::IntScalar::one() << V::FloatScalar::mantissa_bits(),
-        )
-        .unwrap();
-        let coeff_b = <V::FloatScalar as NumCast>::from(
-            (V::IntScalar::one() << V::FloatScalar::mantissa_bits())
-                * <V::IntScalar as NumCast>::from(V::FloatScalar::bias()).unwrap(),
-        )
-        .unwrap();
+        let coeff_a = V::splat(
+            <V::FloatScalar as NumCast>::from(
+                V::IntScalar::one() << V::FloatScalar::mantissa_bits(),
+            )
+            .unwrap(),
+        );
+        let coeff_b = V::splat(
+            <V::FloatScalar as NumCast>::from(
+                (V::IntScalar::one() << V::FloatScalar::mantissa_bits())
+                    * <V::IntScalar as NumCast>::from(V::FloatScalar::bias()).unwrap(),
+            )
+            .unwrap(),
+        );
         let poly_coeff_5_0 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_0);
         let poly_coeff_5_1 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_1);
         let poly_coeff_5_2 = V::from_f64(fastexp_poly_coeff::POLY_COEFF_5_2);
@@ -93,15 +97,15 @@ where
         let xf = V::sub(x, V::floor(x));
 
         let mut factor = poly_coeff_5_5;
-        factor = V::add(V::mul(factor, xf), poly_coeff_5_4);
-        factor = V::add(V::mul(factor, xf), poly_coeff_5_3);
-        factor = V::add(V::mul(factor, xf), poly_coeff_5_2);
-        factor = V::add(V::mul(factor, xf), poly_coeff_5_1);
-        factor = V::add(V::mul(factor, xf), poly_coeff_5_0);
+        factor = V::fma(factor, xf, poly_coeff_5_4);
+        factor = V::fma(factor, xf, poly_coeff_5_3);
+        factor = V::fma(factor, xf, poly_coeff_5_2);
+        factor = V::fma(factor, xf, poly_coeff_5_1);
+        factor = V::fma(factor, xf, poly_coeff_5_0);
 
         x = V::sub(x, factor);
 
-        let cast = V::to_int(V::add_scalar(V::mul_scalar(x, coeff_a), coeff_b));
+        let cast = V::to_int(V::fma(x, coeff_a, coeff_b));
 
         x = V::reinterpret_float_signed(cast);
 
