@@ -6,7 +6,10 @@ use num_traits::{Float, FloatConst, NumCast, PrimInt};
 
 pub trait FloatingPointProps {
     fn bias() -> usize;
+
     fn mantissa_bits() -> usize;
+
+    fn max_ln() -> Self;
 }
 
 impl FloatingPointProps for f32 {
@@ -17,6 +20,10 @@ impl FloatingPointProps for f32 {
     fn mantissa_bits() -> usize {
         23
     }
+
+    fn max_ln() -> Self {
+        2f32.powi(f32::MAX_EXP - 1).ln()
+    }
 }
 
 impl FloatingPointProps for f64 {
@@ -26,6 +33,10 @@ impl FloatingPointProps for f64 {
 
     fn mantissa_bits() -> usize {
         52
+    }
+
+    fn max_ln() -> Self {
+        2f64.powi(f64::MAX_EXP - 1).ln()
     }
 }
 
