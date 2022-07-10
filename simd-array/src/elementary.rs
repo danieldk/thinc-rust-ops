@@ -36,6 +36,7 @@ where
 {
     type Float = V::Float;
 
+    #[inline(always)]
     unsafe fn erf(x: Self::Float) -> Self::Float {
         let one = V::splat(V::FloatScalar::one());
         let coeff_p = V::from_f64(fasterf_poly_coeff::COEFF_P);
@@ -60,6 +61,7 @@ where
         V::copy_sign(x, erf_abs)
     }
 
+    #[inline(always)]
     unsafe fn exp(mut x: Self::Float) -> Self::Float {
         let inf = V::splat(V::FloatScalar::infinity());
         let zero = V::splat(V::FloatScalar::zero());

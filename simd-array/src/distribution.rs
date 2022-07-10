@@ -20,6 +20,7 @@ where
 {
     type Float = <V as SimdVector>::Float;
 
+    #[inline(always)]
     unsafe fn normal_cdf(x: Self::Float) -> Self::Float {
         let half = V::from_f64(0.5);
         let one = V::splat(V::FloatScalar::one());
@@ -28,6 +29,7 @@ where
         V::mul(half, V::add(V::erf(V::mul(sqrt_2_inv, x)), one))
     }
 
+    #[inline(always)]
     unsafe fn logistic_cdf(x: Self::Float) -> Self::Float {
         let one = V::splat(V::FloatScalar::one());
         V::div(one, V::add(V::exp(V::neg(x)), one))
