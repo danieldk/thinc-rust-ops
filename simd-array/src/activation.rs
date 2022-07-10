@@ -36,6 +36,7 @@ where
     type Float = <V as SimdVector>::Float;
     type FloatScalar = <V as SimdVector>::FloatScalar;
 
+    #[inline(always)]
     unsafe fn clipped_linear(
         x: Self::Float,
         slope: Self::FloatScalar,
@@ -49,10 +50,12 @@ where
         V::vmin(V::vmax(x, x_min_val), x_max_val)
     }
 
+    #[inline(always)]
     unsafe fn gelu(x: Self::Float) -> Self::Float {
         V::mul(x, V::normal_cdf(x))
     }
 
+    #[inline(always)]
     unsafe fn hard_sigmoid(x: Self::Float) -> Self::Float {
         Self::clipped_linear(
             x,
@@ -63,6 +66,7 @@ where
         )
     }
 
+    #[inline(always)]
     unsafe fn hard_tanh(x: Self::Float) -> Self::Float {
         Self::clipped_linear(
             x,
@@ -73,11 +77,13 @@ where
         )
     }
 
+    #[inline(always)]
     unsafe fn relu(x: Self::Float) -> Self::Float {
         let zero = V::splat(V::FloatScalar::zero());
         V::vmax(x, zero)
     }
 
+    #[inline(always)]
     unsafe fn swish(x: Self::Float) -> Self::Float {
         V::mul(x, Self::logistic_cdf(x))
     }
