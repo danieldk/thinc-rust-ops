@@ -9,6 +9,7 @@ use crate::distribution::Distribution;
 use crate::vector::avx::AVXVector32;
 #[cfg(target_arch = "x86_64")]
 use crate::vector::avx::AVXVector64;
+use crate::vector::avx2::{AVX2Vector32, AVX2Vector64};
 #[cfg(target_arch = "aarch64")]
 use crate::vector::neon::NeonVector32;
 #[cfg(target_arch = "aarch64")]
@@ -26,7 +27,9 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
 
 #[cfg(target_arch = "x86_64")]
 pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
-    if is_x86_feature_detected!("avx") {
+    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+        (Box::new(AVX2Vector32), Box::new(AVX2Vector64))
+    } else if is_x86_feature_detected!("avx") {
         (Box::new(AVXVector32), Box::new(AVXVector64))
     } else {
         (Box::new(ScalarVector32), Box::new(ScalarVector64))
