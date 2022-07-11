@@ -130,6 +130,8 @@ mod tests {
     use super::Elementary;
     #[cfg(feature = "test_avx")]
     use crate::vector::avx::{AVXVector32, AVXVector64};
+    #[cfg(feature = "test_avx2")]
+    use crate::vector::avx2::{AVX2Vector32, AVX2Vector64};
     #[cfg(target_arch = "aarch64")]
     use crate::vector::neon::{NeonVector32, NeonVector64};
     use crate::vector::{ScalarVector32, ScalarVector64, SimdVector};
@@ -205,6 +207,16 @@ mod tests {
             erf_close_to_libm_erf::<AVXVector64>(v)
         }
 
+        #[cfg(feature = "test_avx2")]
+        fn avx2_erf_close_to_libm_erf_f32(v: f32) -> bool {
+            erf_close_to_libm_erf::<AVX2Vector32>(v)
+        }
+
+        #[cfg(feature = "test_avx2")]
+        fn avx2_erf_close_to_libm_erf_f64(v: f64) -> bool {
+            erf_close_to_libm_erf::<AVX2Vector64>(v)
+        }
+
         #[cfg(target_arch = "aarch64")]
         fn neon_erf_close_to_libm_erf_f32(v: f32) -> bool {
             erf_close_to_libm_erf::<NeonVector32>(v)
@@ -239,6 +251,16 @@ mod tests {
         #[cfg(feature = "test_avx")]
         fn avx_exp_close_to_std_exp_f64(v: f64) -> bool {
             exp_close_to_std_exp::<AVXVector64>(v)
+        }
+
+        #[cfg(feature = "test_avx2")]
+        fn avx2_exp_close_to_std_exp_f32(v: f32) -> bool {
+            exp_close_to_std_exp::<AVX2Vector32>(v)
+        }
+
+        #[cfg(feature = "test_avx2")]
+        fn avx2_exp_close_to_std_exp_f64(v: f64) -> bool {
+            exp_close_to_std_exp::<AVX2Vector64>(v)
         }
 
         #[cfg(target_arch = "aarch64")]
