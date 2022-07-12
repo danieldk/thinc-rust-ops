@@ -143,7 +143,7 @@ impl SimdVector for NeonVector32 {
 
     #[target_feature(enable = "neon")]
     unsafe fn to_float_scalar_array(v: Self::Float) -> Self::FloatScalarArray {
-        let mut a = [0f32; 4];
+        let mut a: Aligned<A16, _> = Aligned([0f32; 4]);
         vst1q_f32(a.as_mut_ptr(), v);
         a
     }
@@ -292,7 +292,7 @@ impl SimdVector for NeonVector64 {
 
     #[target_feature(enable = "neon")]
     unsafe fn to_float_scalar_array(v: Self::Float) -> Self::FloatScalarArray {
-        let mut a = [0f64; 2];
+        let mut a: Aligned<A16, _> = Aligned([0f64; 2]);
         vst1q_f64(a.as_mut_ptr(), v);
         a
     }
