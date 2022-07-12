@@ -11,11 +11,11 @@ use std::arch::aarch64::{
 use std::mem;
 use std::ops::Neg;
 
+use aligned::{Aligned, A16};
 use num_traits::Zero;
 
-use crate::vector::scalar::{ScalarVector32, ScalarVector64};
-
 use super::SimdVector;
+use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 
 #[derive(Default)]
 pub struct NeonVector32;
@@ -24,8 +24,10 @@ impl SimdVector for NeonVector32 {
     type Lower = ScalarVector32;
     type Float = float32x4_t;
     type FloatScalar = f32;
-    type FloatScalarArray =
-        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+    type FloatScalarArray = Aligned<
+        A16,
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
+    >;
     type Int = int32x4_t;
     type IntScalar = i32;
     type Mask = uint32x4_t;
@@ -173,8 +175,10 @@ impl SimdVector for NeonVector64 {
     type Lower = ScalarVector64;
     type Float = float64x2_t;
     type FloatScalar = f64;
-    type FloatScalarArray =
-        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+    type FloatScalarArray = Aligned<
+        A16,
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
+    >;
     type Int = int64x2_t;
     type IntScalar = i64;
     type Mask = uint64x2_t;
