@@ -15,8 +15,8 @@ use crate::vector::avx2::{AVX2Vector32, AVX2Vector64};
 use crate::vector::neon::NeonVector32;
 #[cfg(target_arch = "aarch64")]
 use crate::vector::neon::NeonVector64;
-use crate::vector::{SimdVector};
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
+use crate::vector::SimdVector;
 
 #[cfg(target_arch = "aarch64")]
 pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
