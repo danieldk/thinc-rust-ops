@@ -135,6 +135,8 @@ mod tests {
     #[cfg(target_arch = "aarch64")]
     use crate::vector::neon::{NeonVector32, NeonVector64};
     use crate::vector::scalar::{ScalarVector32, ScalarVector64};
+    #[cfg(target_arch = "x86_64")]
+    use crate::vector::sse2::{SSE2Vector32, SSE2Vector64};
     use crate::vector::SimdVector;
 
     fn erf_close_to_libm_erf<S>(v: S::FloatScalar) -> bool
@@ -236,12 +238,14 @@ mod tests {
             erf_close_to_libm_erf::<ScalarVector64>(v)
         }
 
-        fn scalar_exp_close_to_std_exp_f32(v: f32) -> bool {
-            exp_close_to_std_exp::<ScalarVector32>(v)
+        #[cfg(target_arch = "x86_64")]
+        fn sse2_erf_close_to_libm_erf_f32(v: f32) -> bool {
+            erf_close_to_libm_erf::<SSE2Vector32>(v)
         }
 
-        fn scalar_exp_close_to_std_exp_f64(v: f64) -> bool {
-            exp_close_to_std_exp::<ScalarVector64>(v)
+        #[cfg(target_arch = "x86_64")]
+        fn sse2_erf_close_to_libm_erf_f64(v: f64) -> bool {
+            erf_close_to_libm_erf::<SSE2Vector64>(v)
         }
 
         #[cfg(feature = "test_avx")]
@@ -272,6 +276,24 @@ mod tests {
         #[cfg(target_arch = "aarch64")]
         fn neon_exp_close_to_std_exp_f64(v: f64) -> bool {
             exp_close_to_std_exp::<NeonVector64>(v)
+        }
+
+        fn scalar_exp_close_to_std_exp_f32(v: f32) -> bool {
+            exp_close_to_std_exp::<ScalarVector32>(v)
+        }
+
+        fn scalar_exp_close_to_std_exp_f64(v: f64) -> bool {
+            exp_close_to_std_exp::<ScalarVector64>(v)
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        fn sse2_exp_close_to_std_exp_f32(v: f32) -> bool {
+            exp_close_to_std_exp::<SSE2Vector32>(v)
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        fn sse2_exp_close_to_std_exp_f64(v: f64) -> bool {
+            exp_close_to_std_exp::<SSE2Vector64>(v)
         }
     }
 }
