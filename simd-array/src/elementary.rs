@@ -48,13 +48,13 @@ where
 
         let x_abs = V::abs(x);
         let neg_x_sq = V::neg(V::mul(x, x));
-        let t = V::div(one, V::add(V::mul(x_abs, coeff_p), one));
+        let t = V::div(one, V::fma(x_abs, coeff_p, one));
 
-        let mut tp = V::mul(t, coeff_a5);
-        tp = V::mul(t, V::add(tp, coeff_a4));
-        tp = V::mul(t, V::add(tp, coeff_a3));
-        tp = V::mul(t, V::add(tp, coeff_a2));
-        tp = V::mul(t, V::add(tp, coeff_a1));
+        let mut tp = V::fma(t, coeff_a5, coeff_a4);
+        tp = V::fma(t, tp, coeff_a3);
+        tp = V::fma(t, tp, coeff_a2);
+        tp = V::fma(t, tp, coeff_a1);
+        tp = V::mul(tp, t);
 
         let erf_abs = V::sub(one, V::mul(tp, Self::exp(neg_x_sq)));
 
