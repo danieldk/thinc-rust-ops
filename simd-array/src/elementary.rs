@@ -134,7 +134,8 @@ mod tests {
     use crate::vector::avx2::{AVX2Vector32, AVX2Vector64};
     #[cfg(target_arch = "aarch64")]
     use crate::vector::neon::{NeonVector32, NeonVector64};
-    use crate::vector::{ScalarVector32, ScalarVector64, SimdVector};
+    use crate::vector::scalar::{ScalarVector32, ScalarVector64};
+    use crate::vector::SimdVector;
 
     fn erf_close_to_libm_erf<S>(v: S::FloatScalar) -> bool
     where
