@@ -2,7 +2,7 @@ use std::arch::x86_64::{
     __m256, __m256d, __m256i, _mm256_add_pd, _mm256_add_ps, _mm256_and_pd, _mm256_and_ps,
     _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castsi256_pd, _mm256_castsi256_ps, _mm256_cmp_pd,
     _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps, _mm256_floor_pd,
-    _mm256_floor_ps, _mm256_loadu_pd, _mm256_loadu_ps, _mm256_loadu_si256, _mm256_max_pd,
+    _mm256_floor_ps, _mm256_load_si256, _mm256_loadu_pd, _mm256_loadu_ps, _mm256_max_pd,
     _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd,
     _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps,
     _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd,
@@ -286,10 +286,10 @@ impl SimdVector for AVXVector64 {
     #[target_feature(enable = "avx")]
     unsafe fn to_int(v: Self::Float) -> Self::Int {
         // Blegh, no instruction for this before AVX-512.
-        let mut data_f64 = [0f64; 4];
-        _mm256_storeu_pd(data_f64.as_mut_ptr(), v);
+        let mut data_f64: Aligned<A32, _> = Aligned([0f64; 4]);
+        _mm256_store_pd(data_f64.as_mut_ptr(), v);
         let data = data_f64.map(|v| v as i64);
-        _mm256_loadu_si256(data.as_ptr().cast())
+        _mm256_load_si256(data.as_ptr().cast())
     }
 
     #[target_feature(enable = "avx")]
