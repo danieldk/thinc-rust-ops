@@ -10,7 +10,7 @@ impl SimdVector for ScalarVector32 {
     type Float = f32;
     type FloatScalar = f32;
     type FloatScalarArray =
-    [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = i32;
     type IntScalar = i32;
     type Mask = u32;
@@ -141,7 +141,7 @@ impl SimdVector for ScalarVector64 {
     type Float = f64;
     type FloatScalar = f64;
     type FloatScalarArray =
-    [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = i64;
     type IntScalar = i64;
     type Mask = u64;

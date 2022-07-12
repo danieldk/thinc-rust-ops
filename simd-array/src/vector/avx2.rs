@@ -1,13 +1,13 @@
 use std::arch::x86_64::{
     __m256, __m256d, __m256i, _mm256_add_pd, _mm256_add_ps, _mm256_and_pd, _mm256_and_ps,
-    _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castsi256_pd, _mm256_castsi256_ps,
-    _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps,
-    _mm256_floor_pd, _mm256_floor_ps, _mm256_fmadd_pd, _mm256_fmadd_ps, _mm256_loadu_pd,
-    _mm256_loadu_ps, _mm256_loadu_si256, _mm256_max_pd, _mm256_max_ps, _mm256_min_pd,
-    _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd, _mm256_or_ps, _mm256_set1_epi32,
-    _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps, _mm256_store_pd, _mm256_store_ps,
-    _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps, _mm256_xor_pd,
-    _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
+    _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castsi256_pd, _mm256_castsi256_ps, _mm256_cmp_pd,
+    _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps, _mm256_floor_pd,
+    _mm256_floor_ps, _mm256_fmadd_pd, _mm256_fmadd_ps, _mm256_loadu_pd, _mm256_loadu_ps,
+    _mm256_loadu_si256, _mm256_max_pd, _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd,
+    _mm256_mul_ps, _mm256_or_pd, _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x,
+    _mm256_set1_pd, _mm256_set1_ps, _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd,
+    _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ,
+    _CMP_GT_OQ, _CMP_LT_OQ,
 };
 use std::mem;
 use std::ops::Neg;
@@ -15,8 +15,8 @@ use std::ops::Neg;
 use aligned::{Aligned, A32};
 use num_traits::{Float, Zero};
 
-use super::SimdVector;
 use super::scalar::{ScalarVector32, ScalarVector64};
+use super::SimdVector;
 
 #[derive(Default)]
 pub struct AVX2Vector32;
@@ -27,8 +27,7 @@ impl SimdVector for AVX2Vector32 {
     type FloatScalar = f32;
     type FloatScalarArray = Aligned<
         A32,
-        [Self::FloatScalar;
-            mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
     >;
     type Int = __m256i;
     type IntScalar = i32;
@@ -176,8 +175,7 @@ impl SimdVector for AVX2Vector64 {
     type FloatScalar = f64;
     type FloatScalarArray = Aligned<
         A32,
-        [Self::FloatScalar;
-            mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()],
     >;
     type Int = __m256i;
     type IntScalar = i64;
