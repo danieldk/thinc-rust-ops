@@ -1,21 +1,21 @@
+use std::arch::aarch64::{
+    float32x4_t, float64x2_t, int32x4_t, int64x2_t, uint32x4_t, uint64x2_t, vabsq_f32, vabsq_f64,
+    vaddq_f32, vaddq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64, vceqq_f32, vceqq_f64,
+    vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64, vdivq_f32, vdivq_f64,
+    vdupq_n_f32, vdupq_n_f64, vfmaq_f32, vfmaq_f64, vld1q_f32, vld1q_f64, vmaxq_f32, vmaxq_f64,
+    vminq_f32, vminq_f64, vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64,
+    vreinterpretq_f32_s32, vreinterpretq_f32_u32, vreinterpretq_f64_s64, vreinterpretq_f64_u64,
+    vreinterpretq_u32_f32, vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64,
+    vsubq_f32, vsubq_f64,
+};
 use std::mem;
 use std::ops::Neg;
-use std::arch::aarch64::{
-    float32x4_t, float64x2_t, int32x4_t, int64x2_t, uint32x4_t, uint64x2_t, vabsq_f32,
-    vabsq_f64, vaddq_f32, vaddq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64, vceqq_f32,
-    vceqq_f64, vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64,
-    vdivq_f32, vdivq_f64, vdupq_n_f32, vdupq_n_f64, vfmaq_f32, vfmaq_f64, vld1q_f32, vld1q_f64,
-    vmaxq_f32, vmaxq_f64, vminq_f32, vminq_f64, vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64,
-    vorrq_u32, vorrq_u64, vreinterpretq_f32_s32, vreinterpretq_f32_u32, vreinterpretq_f64_s64,
-    vreinterpretq_f64_u64, vreinterpretq_u32_f32, vreinterpretq_u64_f64, vrndmq_f32,
-    vrndmq_f64, vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
-};
 
 use num_traits::Zero;
 
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 
-use super::{SimdVector};
+use super::SimdVector;
 
 #[derive(Default)]
 pub struct NeonVector32;
@@ -24,8 +24,8 @@ impl SimdVector for NeonVector32 {
     type Lower = ScalarVector32;
     type Float = float32x4_t;
     type FloatScalar = f32;
-    type FloatScalarArray = [Self::FloatScalar;
-        mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+    type FloatScalarArray =
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = int32x4_t;
     type IntScalar = i32;
     type Mask = uint32x4_t;
@@ -173,8 +173,8 @@ impl SimdVector for NeonVector64 {
     type Lower = ScalarVector64;
     type Float = float64x2_t;
     type FloatScalar = f64;
-    type FloatScalarArray = [Self::FloatScalar;
-        mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
+    type FloatScalarArray =
+        [Self::FloatScalar; mem::size_of::<Self::Float>() / mem::size_of::<Self::FloatScalar>()];
     type Int = int64x2_t;
     type IntScalar = i64;
     type Mask = uint64x2_t;
