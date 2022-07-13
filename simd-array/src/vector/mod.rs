@@ -118,7 +118,7 @@ pub trait SimdVector: Default + Send + Sync {
 
 // TODO: get rid of the first argument. Needed so far to help type inference.
 unsafe fn apply_elementwise_generic<V>(
-    _v: &V,
+    _v: V,
     f: impl Fn(V::Float) -> V::Float,
     f_rest: impl Fn(&mut [V::FloatScalar]),
     mut a: &mut [V::FloatScalar],
