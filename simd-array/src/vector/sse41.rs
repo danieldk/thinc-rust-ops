@@ -159,8 +159,7 @@ impl SimdVector for SSE41Vector32 {
         f_rest: impl Fn(&mut [Self::FloatScalar]),
         a: &mut [Self::FloatScalar],
     ) {
-        let v = Self;
-        super::apply_elementwise_generic(&v, f, f_rest, a);
+        super::apply_elementwise_generic(Self, f, f_rest, a);
     }
 }
 
@@ -311,7 +310,6 @@ impl SimdVector for SSE41Vector64 {
         f_rest: impl Fn(&mut [Self::FloatScalar]),
         a: &mut [Self::FloatScalar],
     ) {
-        let v = Self;
-        super::apply_elementwise_generic(&v, f, f_rest, a);
+        super::apply_elementwise_generic(Self, f, f_rest, a);
     }
 }

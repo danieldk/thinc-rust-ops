@@ -128,8 +128,7 @@ impl SimdVector for ScalarVector32 {
         f_rest: impl Fn(&mut [f32]),
         a: &mut [f32],
     ) {
-        let v = Self;
-        apply_elementwise_generic(&v, f, f_rest, a);
+        apply_elementwise_generic(Self, f, f_rest, a);
     }
 }
 
@@ -258,7 +257,6 @@ impl SimdVector for ScalarVector64 {
         f_rest: impl Fn(&mut [f64]),
         a: &mut [f64],
     ) {
-        let v = Self;
-        apply_elementwise_generic(&v, f, f_rest, a);
+        apply_elementwise_generic(Self, f, f_rest, a);
     }
 }
