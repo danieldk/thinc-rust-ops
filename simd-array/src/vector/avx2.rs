@@ -289,7 +289,7 @@ impl SimdVector for AVX2Vector64 {
         // Blegh, no instruction for this before AVX-512.
         let mut data_f64: Aligned<A32, _> = Aligned([0f64; 4]);
         _mm256_store_pd(data_f64.as_mut_ptr(), v);
-        let data = data_f64.map(|v| v as i64);
+        let data: Aligned<A32, [i64; 4]> = Aligned(data_f64.map(|v| v as i64));
         _mm256_load_si256(data.as_ptr().cast())
     }
 
