@@ -1,12 +1,12 @@
 use std::arch::aarch64::{
     float32x4_t, float64x2_t, int32x4_t, int64x2_t, uint32x4_t, uint64x2_t, vabsq_f32, vabsq_f64,
-    vaddq_f32, vaddq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64, vceqq_f32, vceqq_f64,
-    vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64, vdivq_f32, vdivq_f64,
-    vdupq_n_f32, vdupq_n_f64, vfmaq_f32, vfmaq_f64, vld1q_f32, vld1q_f64, vmaxq_f32, vmaxq_f64,
-    vminq_f32, vminq_f64, vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64,
-    vreinterpretq_f32_s32, vreinterpretq_f32_u32, vreinterpretq_f64_s64, vreinterpretq_f64_u64,
-    vreinterpretq_u32_f32, vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64,
-    vsubq_f32, vsubq_f64,
+    vaddq_f32, vaddq_f64, vaddvq_f32, vaddvq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64,
+    vceqq_f32, vceqq_f64, vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64,
+    vdivq_f32, vdivq_f64, vdupq_n_f32, vdupq_n_f64, vfmaq_f32, vfmaq_f64, vld1q_f32, vld1q_f64,
+    vmaxq_f32, vmaxq_f64, vminq_f32, vminq_f64, vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64,
+    vorrq_u32, vorrq_u64, vreinterpretq_f32_s32, vreinterpretq_f32_u32, vreinterpretq_f64_s64,
+    vreinterpretq_f64_u64, vreinterpretq_u32_f32, vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64,
+    vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
 };
 use std::mem;
 use std::ops::Neg;
@@ -40,6 +40,11 @@ impl SimdVector for NeonVector32 {
     #[target_feature(enable = "neon")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         vaddq_f32(a, b)
+    }
+
+    #[target_feature(enable = "neon")]
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        vaddvq_f32(a)
     }
 
     #[target_feature(enable = "neon")]
@@ -90,6 +95,10 @@ impl SimdVector for NeonVector32 {
     #[target_feature(enable = "neon")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         vcgtq_f32(a, b)
+    }
+
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        vld1q_f32(a.as_ptr())
     }
 
     #[target_feature(enable = "neon")]
@@ -165,6 +174,16 @@ impl SimdVector for NeonVector32 {
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
     }
+
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
 }
 
 #[derive(Default)]
@@ -190,6 +209,10 @@ impl SimdVector for NeonVector64 {
     #[target_feature(enable = "neon")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         vaddq_f64(a, b)
+    }
+
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        vaddvq_f64(a)
     }
 
     #[target_feature(enable = "neon")]
@@ -240,6 +263,10 @@ impl SimdVector for NeonVector64 {
     #[target_feature(enable = "neon")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         vcgtq_f64(a, b)
+    }
+
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        vld1q_f64(a.as_ptr())
     }
 
     #[target_feature(enable = "neon")]
@@ -314,5 +341,15 @@ impl SimdVector for NeonVector64 {
         a: &mut [f64],
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
+    }
+
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: f64,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
     }
 }
