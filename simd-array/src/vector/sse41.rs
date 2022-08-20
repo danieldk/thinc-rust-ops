@@ -1,11 +1,11 @@
 use std::arch::x86_64::{
     __m128, __m128d, __m128i, _mm_add_pd, _mm_add_ps, _mm_and_pd, _mm_and_ps, _mm_andnot_pd,
     _mm_andnot_ps, _mm_castsi128_pd, _mm_castsi128_ps, _mm_cmpeq_pd, _mm_cmpeq_ps, _mm_cmpgt_pd,
-    _mm_cmpgt_ps, _mm_cmplt_pd, _mm_cmplt_ps, _mm_cvtps_epi32, _mm_div_pd, _mm_div_ps,
-    _mm_floor_pd, _mm_floor_ps, _mm_load_si128, _mm_loadu_pd, _mm_loadu_ps, _mm_max_pd, _mm_max_ps,
-    _mm_min_pd, _mm_min_ps, _mm_mul_pd, _mm_mul_ps, _mm_or_pd, _mm_or_ps, _mm_set1_pd, _mm_set1_ps,
-    _mm_store_pd, _mm_store_ps, _mm_storeu_pd, _mm_storeu_ps, _mm_sub_pd, _mm_sub_ps, _mm_xor_pd,
-    _mm_xor_ps,
+    _mm_cmpgt_ps, _mm_cmplt_pd, _mm_cmplt_ps, _mm_cvtps_epi32, _mm_cvtsd_f64, _mm_cvtss_f32,
+    _mm_div_pd, _mm_div_ps, _mm_floor_pd, _mm_floor_ps, _mm_load_si128, _mm_loadu_pd, _mm_loadu_ps,
+    _mm_max_pd, _mm_max_ps, _mm_min_pd, _mm_min_ps, _mm_movehdup_ps, _mm_movehl_ps, _mm_mul_pd,
+    _mm_mul_ps, _mm_or_pd, _mm_or_ps, _mm_set1_pd, _mm_set1_ps, _mm_store_pd, _mm_store_ps,
+    _mm_storeu_pd, _mm_storeu_ps, _mm_sub_pd, _mm_sub_ps, _mm_unpackhi_pd, _mm_xor_pd, _mm_xor_ps,
 };
 use std::mem;
 use std::ops::Neg;
@@ -40,6 +40,13 @@ impl SimdVector for SSE41Vector32 {
     #[target_feature(enable = "sse2")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm_add_ps(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        let sums = _mm_add_ps(a, _mm_movehl_ps(a, a));
+        let sums = _mm_add_ps(sums, _mm_movehdup_ps(sums));
+        _mm_cvtss_f32(sums)
     }
 
     #[target_feature(enable = "sse2")]
@@ -83,6 +90,11 @@ impl SimdVector for SSE41Vector32 {
     #[target_feature(enable = "sse2")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm_cmpgt_ps(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        _mm_loadu_ps(a.as_ptr())
     }
 
     #[target_feature(enable = "sse2")]
@@ -161,6 +173,17 @@ impl SimdVector for SSE41Vector32 {
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
     }
+
+    #[target_feature(enable = "sse4.1")]
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
 }
 
 #[derive(Default)]
@@ -187,6 +210,11 @@ impl SimdVector for SSE41Vector64 {
     #[target_feature(enable = "sse2")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm_add_pd(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        _mm_cvtsd_f64(a) + _mm_cvtsd_f64(_mm_unpackhi_pd(a, a))
     }
 
     #[target_feature(enable = "sse2")]
@@ -230,6 +258,11 @@ impl SimdVector for SSE41Vector64 {
     #[target_feature(enable = "sse2")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm_cmpgt_pd(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        _mm_loadu_pd(a.as_ptr())
     }
 
     #[target_feature(enable = "sse2")]
@@ -311,5 +344,16 @@ impl SimdVector for SSE41Vector64 {
         a: &mut [Self::FloatScalar],
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
+    }
+
+    #[target_feature(enable = "sse4.1")]
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
     }
 }

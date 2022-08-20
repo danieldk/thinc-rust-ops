@@ -23,6 +23,10 @@ impl SimdVector for ScalarVector32 {
         a + b
     }
 
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
+    }
+
     unsafe fn add_scalar(a: Self::Float, b: f32) -> Self::Float {
         a + b
     }
@@ -61,6 +65,10 @@ impl SimdVector for ScalarVector32 {
         } else {
             0
         }
+    }
+
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        a[0]
     }
 
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
@@ -130,6 +138,16 @@ impl SimdVector for ScalarVector32 {
     ) {
         apply_elementwise_generic(Self, f, f_rest, a);
     }
+
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::FloatScalar) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
 }
 
 #[derive(Default)]
@@ -151,6 +169,10 @@ impl SimdVector for ScalarVector64 {
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         a + b
+    }
+
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
     }
 
     unsafe fn add_scalar(a: Self::Float, b: f64) -> Self::Float {
@@ -191,6 +213,10 @@ impl SimdVector for ScalarVector64 {
         } else {
             0
         }
+    }
+
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        a[0]
     }
 
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
@@ -258,5 +284,15 @@ impl SimdVector for ScalarVector64 {
         a: &mut [f64],
     ) {
         apply_elementwise_generic(Self, f, f_rest, a);
+    }
+
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
     }
 }

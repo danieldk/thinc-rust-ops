@@ -54,6 +54,9 @@ pub trait SimdVector: Default + Send + Sync {
 
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float;
 
+    // Add across lanes
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar;
+
     /// Add a scalar to every vector element.
     unsafe fn add_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float;
 
@@ -79,6 +82,8 @@ pub trait SimdVector: Default + Send + Sync {
 
     /// If a is greater than b, set all corresponding lanes to 1.
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask;
+
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float;
 
     /// If a is less than b, set all corresponding lanes to 1.
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask;
@@ -114,6 +119,33 @@ pub trait SimdVector: Default + Send + Sync {
         f_rest: impl Fn(&mut [Self::FloatScalar]),
         a: &mut [Self::FloatScalar],
     );
+
+    /// Array reduction.
+    /// 
+    /// Reduce an array to a scalar using the provided function(s). The
+    /// function `f` first applies the reduction at the SIMD level.
+    /// 
+    /// * `f` is the main reduction function to apply. For instance,
+    ///   if the SIMD addition function is used then the result of
+    ///   the main reduction loop will be a SIMD float containing the
+    ///   (partial) sums.
+    /// * `f_lanes` applies the reduction to the lanes of the SIMD
+    ///    floats that are the result of the reduction. For example,
+    ///   if `f` uses addition, then this function could apply lane
+    ///   addition to get the sum from the partial sums.
+    /// * `f_rest` should apply the reduction to the remainder of
+    ///   the array if the array size is not a multiple of the SIMD
+    ///   size. The result of the reduction using `f` and `f_lanes`
+    ///   is passed as an initialization value to `f_rest`.
+    /// * `init` is the initial value for the reduction. E.g. for
+    ///   addition this should be 0.0.
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar;
 }
 
 // TODO: get rid of the first argument. Needed so far to help type inference.
@@ -134,6 +166,36 @@ unsafe fn apply_elementwise_generic<V>(
 
     if a.len() > 0 {
         f_rest(a);
+    }
+}
+
+unsafe fn reduce_generic<V>(
+    _v: V,
+    f: impl Fn(V::Float, V::Float) -> V::Float,
+    f_lanes: impl Fn(V::Float) -> V::FloatScalar,
+    f_rest: impl Fn(V::FloatScalar, &[V::FloatScalar]) -> V::FloatScalar,
+    init: V::FloatScalar,
+    mut a: &[V::FloatScalar],
+) -> V::FloatScalar
+where
+    V: SimdVector,
+{
+    let elem_size = mem::size_of::<V::Float>() / mem::size_of::<V::FloatScalar>();
+
+    let mut acc = V::splat(init);
+
+    while a.len() >= elem_size {
+        let val = V::load(a);
+        acc = f(acc, val);
+        a = &a[elem_size..];
+    }
+
+    let scalar = f_lanes(acc);
+
+    if a.is_empty() {
+        scalar
+    } else {
+        f_rest(scalar, a)
     }
 }
 

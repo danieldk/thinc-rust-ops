@@ -1,7 +1,8 @@
 use std::arch::x86_64::{
     __m256, __m256d, __m256i, _mm256_add_pd, _mm256_add_ps, _mm256_and_pd, _mm256_and_ps,
-    _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castsi256_pd, _mm256_castsi256_ps, _mm256_cmp_pd,
-    _mm256_cmp_ps, _mm256_cvtps_epi32, _mm256_div_pd, _mm256_div_ps, _mm256_floor_pd,
+    _mm256_andnot_pd, _mm256_andnot_ps, _mm256_castpd256_pd128, _mm256_castps256_ps128,
+    _mm256_castsi256_pd, _mm256_castsi256_ps, _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32,
+    _mm256_div_pd, _mm256_div_ps, _mm256_extractf128_pd, _mm256_extractf128_ps, _mm256_floor_pd,
     _mm256_floor_ps, _mm256_fmadd_pd, _mm256_fmadd_ps, _mm256_load_si256, _mm256_loadu_pd,
     _mm256_loadu_ps, _mm256_max_pd, _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd,
     _mm256_mul_ps, _mm256_or_pd, _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x,
@@ -15,14 +16,14 @@ use std::ops::Neg;
 use aligned::{Aligned, A32};
 use num_traits::{Float, Zero};
 
-use super::scalar::{ScalarVector32, ScalarVector64};
 use super::SimdVector;
+use crate::vector::sse41::{SSE41Vector32, SSE41Vector64};
 
 #[derive(Default)]
 pub struct AVX2Vector32;
 
 impl SimdVector for AVX2Vector32 {
-    type Lower = ScalarVector32;
+    type Lower = SSE41Vector32;
     type Float = __m256;
     type FloatScalar = f32;
     type FloatScalarArray = Aligned<
@@ -42,6 +43,12 @@ impl SimdVector for AVX2Vector32 {
     #[target_feature(enable = "avx2")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm256_add_ps(a, b)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        let sums = Self::Lower::add(_mm256_castps256_ps128(a), _mm256_extractf128_ps(a, 1));
+        Self::Lower::add_lanes(sums)
     }
 
     #[target_feature(enable = "avx2")]
@@ -88,6 +95,11 @@ impl SimdVector for AVX2Vector32 {
     #[target_feature(enable = "avx2")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm256_cmp_ps::<_CMP_GT_OQ>(a, b)
+    }
+
+    #[target_feature(enable = "avx2")]
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        _mm256_loadu_ps(a.as_ptr())
     }
 
     #[target_feature(enable = "avx2")]
@@ -163,13 +175,24 @@ impl SimdVector for AVX2Vector32 {
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
     }
+
+    #[target_feature(enable = "avx2")]
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
 }
 
 #[derive(Default)]
 pub struct AVX2Vector64;
 
 impl SimdVector for AVX2Vector64 {
-    type Lower = ScalarVector64;
+    type Lower = SSE41Vector64;
     type Float = __m256d;
     type FloatScalar = f64;
     type FloatScalarArray = Aligned<
@@ -189,6 +212,12 @@ impl SimdVector for AVX2Vector64 {
     #[target_feature(enable = "avx")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm256_add_pd(a, b)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
+        let sums = Self::Lower::add(_mm256_castpd256_pd128(a), _mm256_extractf128_pd(a, 1));
+        Self::Lower::add_lanes(sums)
     }
 
     #[target_feature(enable = "avx")]
@@ -234,6 +263,11 @@ impl SimdVector for AVX2Vector64 {
     #[target_feature(enable = "avx")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm256_cmp_pd::<_CMP_GT_OQ>(a, b)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
+        _mm256_loadu_pd(a.as_ptr())
     }
 
     #[target_feature(enable = "avx")]
@@ -313,5 +347,16 @@ impl SimdVector for AVX2Vector64 {
         a: &mut [f64],
     ) {
         super::apply_elementwise_generic(Self, f, f_rest, a);
+    }
+
+    #[target_feature(enable = "avx2")]
+    unsafe fn reduce(
+        f: impl Fn(Self::Float, Self::Float) -> Self::Float,
+        f_lanes: impl Fn(Self::Float) -> Self::FloatScalar,
+        f_rest: impl Fn(Self::FloatScalar, &[Self::FloatScalar]) -> Self::FloatScalar,
+        init: Self::FloatScalar,
+        a: &[Self::FloatScalar],
+    ) -> Self::FloatScalar {
+        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
     }
 }
