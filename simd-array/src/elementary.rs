@@ -158,7 +158,6 @@ mod tests {
         }
 
         let max_relative = if mem::size_of::<S::FloatScalar>() == 4 {
-            // 1e-5 fails sometimes in many repetitions of the test, e.g.: 51.304375
             1e-6
         } else {
             1e-7
@@ -168,7 +167,7 @@ mod tests {
             r,
             check_erf.to_f64().unwrap(),
             max_relative = max_relative,
-            epsilon = 1e-7
+            epsilon = 1e-6
         )
     }
 
