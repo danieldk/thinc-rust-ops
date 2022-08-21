@@ -128,7 +128,7 @@ impl SimdVector for NeonVector32 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
         vmaxq_f32(a, b)
     }
 
@@ -296,7 +296,7 @@ impl SimdVector for NeonVector64 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
         vmaxq_f64(a, b)
     }
 

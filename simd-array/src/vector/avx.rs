@@ -7,7 +7,7 @@ use std::arch::x86_64::{
     _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd,
     _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps,
     _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd,
-    _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
+    _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ, _CMP_UNORD_Q,
 };
 use std::mem;
 use std::ops::Neg;
@@ -129,8 +129,10 @@ impl SimdVector for AVXVector32 {
     }
 
     #[target_feature(enable = "avx")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm256_max_ps(a, b)
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        let max = _mm256_max_ps(a, b);
+        let is_nan = _mm256_cmp_ps::<_CMP_UNORD_Q>(a, b);
+        _mm256_or_ps(max, is_nan)
     }
 
     #[target_feature(enable = "avx")]
@@ -297,8 +299,10 @@ impl SimdVector for AVXVector64 {
     }
 
     #[target_feature(enable = "avx")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm256_max_pd(a, b)
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        let max = _mm256_max_pd(a, b);
+        let is_nan = _mm256_cmp_pd::<_CMP_UNORD_Q>(a, b);
+        _mm256_or_pd(max, is_nan)
     }
 
     #[target_feature(enable = "avx")]

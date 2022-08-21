@@ -1,5 +1,7 @@
 use std::mem;
 
+use num_traits::Float;
+
 use crate::vector::{apply_elementwise_generic, SimdVector};
 
 #[derive(Default)]
@@ -95,12 +97,8 @@ impl SimdVector for ScalarVector32 {
         a - b
     }
 
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        if a > b {
-            a
-        } else {
-            b
-        }
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        maximum(a, b)
     }
 
     unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -243,12 +241,8 @@ impl SimdVector for ScalarVector64 {
         a - b
     }
 
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        if a > b {
-            a
-        } else {
-            b
-        }
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        maximum(a, b)
     }
     unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
         if a > b {
@@ -294,5 +288,23 @@ impl SimdVector for ScalarVector64 {
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
         super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
+}
+
+// NaN-propagating maximum like {f32,f64}::maximum. Replace once
+// these are stabilized.
+fn maximum<F: Float>(a: F, b: F) -> F {
+    if a > b {
+        a
+    } else if b > a {
+        b
+    } else if a == b {
+        if a.is_sign_positive() && b.is_sign_negative() {
+            a
+        } else {
+            b
+        }
+    } else {
+        a + b
     }
 }

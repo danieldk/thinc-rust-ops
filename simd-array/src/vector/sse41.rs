@@ -3,9 +3,9 @@ use std::arch::x86_64::{
     _mm_andnot_ps, _mm_castsi128_pd, _mm_castsi128_ps, _mm_cmpeq_pd, _mm_cmpeq_ps, _mm_cmpgt_pd,
     _mm_cmpgt_ps, _mm_cmplt_pd, _mm_cmplt_ps, _mm_cvtps_epi32, _mm_cvtsd_f64, _mm_cvtss_f32,
     _mm_div_pd, _mm_div_ps, _mm_floor_pd, _mm_floor_ps, _mm_load_si128, _mm_loadu_pd, _mm_loadu_ps,
-    _mm_max_pd, _mm_max_ps, _mm_min_pd, _mm_min_ps, _mm_movehdup_ps, _mm_movehl_ps, _mm_mul_pd,
-    _mm_mul_ps, _mm_or_pd, _mm_or_ps, _mm_set1_pd, _mm_set1_ps, _mm_store_pd, _mm_store_ps,
-    _mm_storeu_pd, _mm_storeu_ps, _mm_sub_pd, _mm_sub_ps, _mm_unpackhi_pd, _mm_xor_pd, _mm_xor_ps,
+    _mm_min_pd, _mm_min_ps, _mm_movehdup_ps, _mm_movehl_ps, _mm_mul_pd, _mm_mul_ps, _mm_or_pd,
+    _mm_or_ps, _mm_set1_pd, _mm_set1_ps, _mm_store_pd, _mm_store_ps, _mm_storeu_pd, _mm_storeu_ps,
+    _mm_sub_pd, _mm_sub_ps, _mm_unpackhi_pd, _mm_xor_pd, _mm_xor_ps,
 };
 use std::mem;
 use std::ops::Neg;
@@ -15,6 +15,8 @@ use num_traits::{Float, Zero};
 
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 use crate::vector::SimdVector;
+
+use super::sse2::{SSE2Vector32, SSE2Vector64};
 
 #[derive(Default)]
 pub struct SSE41Vector32;
@@ -124,8 +126,8 @@ impl SimdVector for SSE41Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_max_ps(a, b)
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        SSE2Vector32::max(a, b)
     }
 
     #[target_feature(enable = "sse2")]
@@ -292,8 +294,8 @@ impl SimdVector for SSE41Vector64 {
     }
 
     #[target_feature(enable = "sse2")]
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_max_pd(a, b)
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
+        SSE2Vector64::max(a, b)
     }
 
     #[target_feature(enable = "sse2")]
