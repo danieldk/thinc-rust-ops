@@ -99,7 +99,9 @@ pub trait SimdVector: Default + Send + Sync {
     unsafe fn sub(a: Self::Float, b: Self::Float) -> Self::Float;
 
     /// Vector element-wise maximum.
-    unsafe fn vmax(a: Self::Float, b: Self::Float) -> Self::Float;
+    ///
+    /// All implementations must be NaN-propagating.
+    unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float;
 
     /// Vector element-wise minimum.
     unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float;
@@ -121,10 +123,10 @@ pub trait SimdVector: Default + Send + Sync {
     );
 
     /// Array reduction.
-    /// 
+    ///
     /// Reduce an array to a scalar using the provided function(s). The
     /// function `f` first applies the reduction at the SIMD level.
-    /// 
+    ///
     /// * `f` is the main reduction function to apply. For instance,
     ///   if the SIMD addition function is used then the result of
     ///   the main reduction loop will be a SIMD float containing the
@@ -215,3 +217,73 @@ pub mod sse41;
 
 #[cfg(all(target_arch = "aarch64"))]
 pub mod neon;
+
+#[cfg(test)]
+mod tests {
+    use std::fmt;
+
+    use as_slice::AsSlice;
+    use num_traits::Float;
+
+    use super::scalar::{ScalarVector32, ScalarVector64};
+    use super::SimdVector;
+
+    fn max_nan_is_nan<V, S>()
+    where
+        V: SimdVector<FloatScalar = S>,
+        S: fmt::Debug + Float,
+    {
+        let nan = unsafe { V::splat(S::nan()) };
+        let zero = unsafe { V::splat(S::zero()) };
+
+        let max_zero_nan = unsafe { V::to_float_scalar_array(V::max(zero, nan)) }.as_slice()[0];
+        assert!(max_zero_nan.is_nan());
+
+        let max_zero_nan = unsafe { V::to_float_scalar_array(V::max(nan, zero)) }.as_slice()[0];
+        assert!(max_zero_nan.is_nan());
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[test]
+    fn max_nan_is_nan_neon() {
+        use super::neon::{NeonVector32, NeonVector64};
+
+        max_nan_is_nan::<NeonVector32, f32>();
+        max_nan_is_nan::<NeonVector64, f64>();
+    }
+
+    #[test]
+    fn max_nan_is_nan_scalar() {
+        max_nan_is_nan::<ScalarVector32, f32>();
+        max_nan_is_nan::<ScalarVector64, f64>();
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    #[test]
+    fn max_nan_is_nan_x86_64() {
+        use super::avx::{AVXVector32, AVXVector64};
+        use super::avx2::{AVX2Vector32, AVX2Vector64};
+        use super::sse2::{SSE2Vector32, SSE2Vector64};
+        use super::sse41::{SSE41Vector32, SSE41Vector64};
+
+        if is_x86_feature_detected!("sse2") {
+            max_nan_is_nan::<SSE2Vector32, f32>();
+            max_nan_is_nan::<SSE2Vector64, f64>();
+        }
+
+        if is_x86_feature_detected!("sse4.1") {
+            max_nan_is_nan::<SSE41Vector32, f32>();
+            max_nan_is_nan::<SSE41Vector64, f64>();
+        }
+
+        if is_x86_feature_detected!("avx") {
+            max_nan_is_nan::<AVXVector32, f32>();
+            max_nan_is_nan::<AVXVector64, f64>();
+        }
+
+        if is_x86_feature_detected!("avx2") {
+            max_nan_is_nan::<AVX2Vector32, f32>();
+            max_nan_is_nan::<AVX2Vector64, f64>();
+        }
+    }
+}
