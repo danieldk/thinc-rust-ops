@@ -64,6 +64,11 @@ impl SimdVector for SSE41Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        SSE2Vector32::clamp_min(a, min)
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
         let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
         Self::bitwise_select(sign_bit_mask, sign_src, dest)
@@ -229,6 +234,11 @@ impl SimdVector for SSE41Vector64 {
         let u = _mm_and_pd(a, b);
         let v = _mm_andnot_pd(a, c);
         _mm_or_pd(u, v)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        SSE2Vector64::clamp_min(a, min)
     }
 
     #[target_feature(enable = "sse2")]

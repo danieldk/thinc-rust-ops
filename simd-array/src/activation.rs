@@ -47,7 +47,7 @@ where
         let x_min_val = V::splat(min_val);
         let x_max_val = V::splat(max_val);
         let x = V::add_scalar(V::mul_scalar(x, slope), offset);
-        V::vmin(V::max(x, x_min_val), x_max_val)
+        V::vmin(V::clamp_min(x, x_min_val), x_max_val)
     }
 
     #[inline(always)]
@@ -80,7 +80,7 @@ where
     #[inline(always)]
     unsafe fn relu(x: Self::Float) -> Self::Float {
         let zero = V::splat(V::FloatScalar::zero());
-        V::max(x, zero)
+        V::clamp_min(x, zero)
     }
 
     #[inline(always)]
