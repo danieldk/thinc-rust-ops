@@ -146,6 +146,10 @@ impl SimdVector for ScalarVector32 {
     ) -> Self::FloatScalar {
         super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
     }
+
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        min.max(a)
+    }
 }
 
 #[derive(Default)]
@@ -288,6 +292,10 @@ impl SimdVector for ScalarVector64 {
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
         super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+    }
+
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        min.max(a)
     }
 }
 

@@ -65,6 +65,11 @@ impl SimdVector for AVXVector32 {
     }
 
     #[target_feature(enable = "avx")]
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        _mm256_max_ps(min, a)
+    }
+
+    #[target_feature(enable = "avx")]
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
         // Negative zero has all bits unset, except the sign bit.
         let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
@@ -232,6 +237,11 @@ impl SimdVector for AVXVector64 {
         let u = _mm256_and_pd(a, b);
         let v = _mm256_andnot_pd(a, c);
         _mm256_or_pd(u, v)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        _mm256_max_pd(min, a)
     }
 
     #[target_feature(enable = "avx")]

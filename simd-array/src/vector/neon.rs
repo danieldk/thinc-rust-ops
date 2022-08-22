@@ -65,6 +65,10 @@ impl SimdVector for NeonVector32 {
         vreinterpretq_f32_u32(r)
     }
 
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        vmaxq_f32(min, a)
+    }
+
     #[target_feature(enable = "neon")]
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
         // Negative zero has all bits unset, except the sign bit.
@@ -231,6 +235,10 @@ impl SimdVector for NeonVector64 {
         let c = vreinterpretq_u64_f64(c);
         let r = vorrq_u64(vandq_u64(a, b), vbicq_u64(c, a));
         vreinterpretq_f64_u64(r)
+    }
+
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        vmaxq_f64(min, a)
     }
 
     #[target_feature(enable = "neon")]
