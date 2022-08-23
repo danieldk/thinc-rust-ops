@@ -6,6 +6,7 @@ use num_traits::Float;
 
 use crate::activation::Activation;
 use crate::distribution::Distribution;
+use crate::util::maximum;
 #[cfg(target_arch = "x86_64")]
 use crate::vector::avx::AVXVector32;
 #[cfg(target_arch = "x86_64")]
@@ -143,6 +144,8 @@ pub trait Array: Send + Sync {
 
     fn logistic_cdf(&self, a: &mut [Self::Scalar]);
 
+    fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar>;
+
     fn relu(&self, a: &mut [Self::Scalar]);
 
     fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar;
@@ -178,6 +181,23 @@ where
         }
     }
 
+    fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
+        if a.is_empty() {
+            return None;
+        }
+
+        let lower = V::Lower::default();
+        Some(unsafe {
+            V::reduce(
+                |acc, v| V::max(acc, v),
+                |v| V::max_lanes(v),
+                |init, a| maximum(init, lower.max(a).unwrap()),
+                a[0],
+                a,
+            )
+        })
+    }
+
     fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
         let lower = V::Lower::default();
         unsafe {
@@ -204,8 +224,41 @@ mod tests {
     use std::fmt;
 
     use num_traits::Float;
+    use ordered_float::OrderedFloat;
+    use quickcheck_macros::quickcheck;
 
     use super::{all_platform_arrays, Array};
+
+    fn test_max<S: Float>(arrays: &[Box<dyn Array<Scalar = S>>], a: &[S]) -> bool {
+        for array in arrays {
+            let check = a.iter().max_by_key(|&&v| OrderedFloat(v)).cloned();
+            let r = array.max(&a);
+
+            if r.map(OrderedFloat) != check.map(OrderedFloat) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck]
+    fn test_max_f32(a: Vec<f32>) -> bool {
+        let arrays_f32 = all_platform_arrays()
+            .into_values()
+            .map(|a| a.0)
+            .collect::<Vec<_>>();
+        test_max(&arrays_f32, &a)
+    }
+
+    #[quickcheck]
+    fn test_max_f64(a: Vec<f64>) -> bool {
+        let arrays_f64 = all_platform_arrays()
+            .into_values()
+            .map(|a| a.1)
+            .collect::<Vec<_>>();
+        test_max(&arrays_f64, &a)
+    }
 
     fn test_sum_special_values<S>(array: &dyn Array<Scalar = S>)
     where

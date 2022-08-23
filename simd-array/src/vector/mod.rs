@@ -90,6 +90,8 @@ pub trait SimdVector: Default + Send + Sync {
     /// If a is less than b, set all corresponding lanes to 1.
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask;
 
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar;
+
     /// Vector element-wise multiplication.
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float;
 
