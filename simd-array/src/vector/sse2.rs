@@ -14,6 +14,7 @@ use std::ops::Neg;
 use aligned::{Aligned, A16};
 use num_traits::{Float, Zero};
 
+use crate::util::maximum;
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 use crate::vector::SimdVector;
 
@@ -110,6 +111,13 @@ impl SimdVector for SSE2Vector32 {
     #[target_feature(enable = "sse2")]
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm_cmplt_ps(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        let maxes = Self::max(a, _mm_movehl_ps(a, a));
+        let maxes = Self::max(maxes, _mm_movehdup_ps(maxes));
+        _mm_cvtss_f32(maxes)
     }
 
     #[target_feature(enable = "sse2")]
@@ -289,6 +297,11 @@ impl SimdVector for SSE2Vector64 {
     #[target_feature(enable = "sse2")]
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm_cmplt_pd(a, b)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        maximum(_mm_cvtsd_f64(a), _mm_cvtsd_f64(_mm_unpackhi_pd(a, a)))
     }
 
     #[target_feature(enable = "sse2")]

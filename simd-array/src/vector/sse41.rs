@@ -110,6 +110,11 @@ impl SimdVector for SSE41Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        SSE2Vector32::max_lanes(a)
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm_mul_ps(a, b)
     }
@@ -275,6 +280,11 @@ impl SimdVector for SSE41Vector64 {
     #[target_feature(enable = "sse2")]
     unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
         _mm_loadu_pd(a.as_ptr())
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        SSE2Vector64::max_lanes(a)
     }
 
     #[target_feature(enable = "sse2")]

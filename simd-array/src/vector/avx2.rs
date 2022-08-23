@@ -112,6 +112,11 @@ impl SimdVector for AVX2Vector32 {
         _mm256_cmp_ps::<_CMP_LT_OQ>(a, b)
     }
 
+    #[target_feature(enable = "avx")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        AVXVector32::max_lanes(a)
+    }
+
     #[target_feature(enable = "avx2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm256_mul_ps(a, b)
@@ -283,6 +288,11 @@ impl SimdVector for AVX2Vector64 {
     #[target_feature(enable = "avx")]
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
         _mm256_cmp_pd::<_CMP_LT_OQ>(a, b)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        AVXVector64::max_lanes(a)
     }
 
     #[target_feature(enable = "avx")]

@@ -7,4 +7,6 @@ mod distribution;
 
 mod elementary;
 
+pub(crate) mod util;
+
 pub(crate) mod vector;

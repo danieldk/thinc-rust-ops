@@ -1,7 +1,6 @@
 use std::mem;
 
-use num_traits::Float;
-
+use crate::util::maximum;
 use crate::vector::{apply_elementwise_generic, SimdVector};
 
 #[derive(Default)]
@@ -79,6 +78,10 @@ impl SimdVector for ScalarVector32 {
         } else {
             0
         }
+    }
+
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
     }
 
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
@@ -229,6 +232,10 @@ impl SimdVector for ScalarVector64 {
         }
     }
 
+    unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
+    }
+
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         a * b
     }
@@ -296,23 +303,5 @@ impl SimdVector for ScalarVector64 {
 
     unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
         min.max(a)
-    }
-}
-
-// NaN-propagating maximum like {f32,f64}::maximum. Replace once
-// these are stabilized.
-fn maximum<F: Float>(a: F, b: F) -> F {
-    if a > b {
-        a
-    } else if b > a {
-        b
-    } else if a == b {
-        if a.is_sign_positive() && b.is_sign_negative() {
-            a
-        } else {
-            b
-        }
-    } else {
-        a + b
     }
 }

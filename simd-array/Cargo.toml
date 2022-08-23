@@ -11,4 +11,6 @@ num-traits = "0.2"
 [dev-dependencies]
 approx = "0.5"
 libm = "0.2"
+ordered-float = "3"
 quickcheck = "1"
+quickcheck_macros = "1"
