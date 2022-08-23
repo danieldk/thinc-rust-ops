@@ -185,34 +185,29 @@ unsafe fn apply_elementwise_generic<V>(
     }
 }
 
-unsafe fn reduce_generic<V>(
-    _v: V,
-    f: impl Fn(V::Float, V::Float) -> V::Float,
-    f_lanes: impl Fn(V::Float) -> V::FloatScalar,
-    f_rest: impl Fn(V::FloatScalar, &[V::FloatScalar]) -> V::FloatScalar,
-    init: V::FloatScalar,
-    mut a: &[V::FloatScalar],
-) -> V::FloatScalar
-where
-    V: SimdVector,
-{
-    let elem_size = mem::size_of::<V::Float>() / mem::size_of::<V::FloatScalar>();
+macro_rules! reduce_generic {
+    ($v:ty,$f:ident,$f_lanes:ident,$f_rest:ident,$init:ident,$a:ident) => {
+        {
+            let elem_size = mem::size_of::<<$v>::Float>() / mem::size_of::<<$v>::FloatScalar>();
 
-    let mut acc = V::splat(init);
+            let mut a = $a;
+            let mut acc = <$v>::splat($init);
 
-    while a.len() >= elem_size {
-        let val = V::load(a);
-        acc = f(acc, val);
-        a = &a[elem_size..];
-    }
+            while a.len() >= elem_size {
+                let val = <$v>::load(a);
+                acc = $f(acc, val);
+                a = &a[elem_size..];
+            }
 
-    let scalar = f_lanes(acc);
+            let scalar = $f_lanes(acc);
 
-    if a.is_empty() {
-        scalar
-    } else {
-        f_rest(scalar, a)
-    }
+            if a.is_empty() {
+                scalar
+            } else {
+                $f_rest(scalar, a)
+            }
+        }
+    };
 }
 
 pub mod scalar;

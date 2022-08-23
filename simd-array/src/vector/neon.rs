@@ -191,7 +191,7 @@ impl SimdVector for NeonVector32 {
         init: Self::FloatScalar,
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
-        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+        reduce_generic!(Self, f, f_lanes, f_rest, init, a)
     }
 }
 
@@ -368,6 +368,6 @@ impl SimdVector for NeonVector64 {
         init: f64,
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
-        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+        reduce_generic!(Self, f, f_lanes, f_rest, init, a)
     }
 }
