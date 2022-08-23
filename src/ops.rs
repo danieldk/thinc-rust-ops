@@ -22,6 +22,13 @@ impl<'a> PyArrayDynFloat<'a> {
             }
         }
     }
+
+    fn shape<'py>(&'a self) -> &'a [usize] {
+        match self {
+            PyArrayDynFloat::F32(a) => a.shape(),
+            PyArrayDynFloat::F64(a) => a.shape(),
+        }
+    }
 }
 
 impl<'a> IntoPy<PyObject> for PyArrayDynFloat<'a> {
@@ -200,6 +207,46 @@ impl RustOps {
             |s| self.array_f32.logistic_cdf(s),
             |s| self.array_f64.logistic_cdf(s),
         )
+    }
+
+    #[args(axis = -1, inplace = "false", temperature = "1.0")]
+    fn softmax<'py>(
+        &self,
+        py: Python<'py>,
+        mut x: PyArrayDynFloat<'py>,
+        inplace: bool,
+        axis: isize,
+        temperature: f64,
+    ) -> PyResult<PyArrayDynFloat<'py>> {
+        let shape = x.shape().to_owned();
+
+        // FIXME: add support for other axes.
+        assert!(axis == -1 || axis == shape.len() as isize - 1);
+
+        if !inplace {
+            x = x.copy_array(py)
+        }
+
+        let temperature = if temperature == 1.0 {
+            None
+        } else {
+            Some(temperature)
+        };
+
+        match x {
+            PyArrayDynFloat::F32(a) => self.array_f32.softmax(
+                unsafe { a.as_slice_mut()? },
+                *shape.last().unwrap(),
+                temperature.map(|v| v as f32),
+            ),
+            PyArrayDynFloat::F64(a) => self.array_f64.softmax(
+                unsafe { a.as_slice_mut()? },
+                *shape.last().unwrap(),
+                temperature,
+            ),
+        }
+
+        Ok(x)
     }
 
     #[args(inplace = "false")]
