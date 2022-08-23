@@ -196,7 +196,7 @@ impl SimdVector for AVXVector32 {
         init: Self::FloatScalar,
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
-        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+        reduce_generic!(Self, f, f_lanes, f_rest, init, a)
     }
 }
 
@@ -382,6 +382,6 @@ impl SimdVector for AVXVector64 {
         init: Self::FloatScalar,
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
-        super::reduce_generic(Self, f, f_lanes, f_rest, init, a)
+        reduce_generic!(Self, f, f_lanes, f_rest, init, a)
     }
 }
