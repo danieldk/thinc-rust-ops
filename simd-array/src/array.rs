@@ -6,6 +6,7 @@ use num_traits::Float;
 
 use crate::activation::Activation;
 use crate::distribution::Distribution;
+use crate::elementary::Elementary;
 use crate::util::maximum;
 #[cfg(target_arch = "x86_64")]
 use crate::vector::avx::AVXVector32;
@@ -136,6 +137,10 @@ pub trait Array: Send + Sync {
         max_val: Self::Scalar,
     );
 
+    fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar);
+
+    fn exp(&self, a: &mut [Self::Scalar]);
+
     fn gelu(&self, a: &mut [Self::Scalar]);
 
     fn hard_sigmoid(&self, a: &mut [Self::Scalar]);
@@ -148,6 +153,10 @@ pub trait Array: Send + Sync {
 
     fn relu(&self, a: &mut [Self::Scalar]);
 
+    fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>);
+
+    fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar);
+
     fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar;
 
     fn swish(&self, a: &mut [Self::Scalar]);
@@ -159,6 +168,7 @@ where
     U: Float,
     V: Activation<Float = T, FloatScalar = U>
         + Distribution<Float = T>
+        + Elementary<Float = T>
         + SimdVector<Float = T, FloatScalar = U>,
 {
     type Scalar = U;
@@ -181,6 +191,11 @@ where
         }
     }
 
+    fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+        let lower = V::Lower::default();
+        unsafe { V::apply_elementwise(|v| V::div_scalar(v, b), |a| lower.div(a, b), a) };
+    }
+
     fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
         if a.is_empty() {
             return None;
@@ -198,6 +213,38 @@ where
         })
     }
 
+    fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>) {
+        assert!(n_class > 0);
+
+        if let Some(temperature) = temperature {
+            self.div(a, temperature);
+        }
+
+        // Subtract maximum from each class to improve numeric stability.
+        let mut tmp = &mut *a;
+        while !tmp.is_empty() {
+            let max = self.max(&tmp[..n_class]).expect("Cannot get maximum, zero classes?");
+            self.sub(&mut tmp[..n_class], max);
+            tmp = &mut tmp[n_class..];
+        }
+
+        // Exponentiate.
+        tmp = a;
+        self.exp(tmp);
+
+        // Normalize
+        while !tmp.is_empty() {
+            let sum = self.sum(&tmp[..n_class]);
+            self.div(&mut tmp[..n_class], sum);
+            tmp = &mut tmp[n_class..];
+        }
+    }
+
+    fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+        let lower = V::Lower::default();
+        unsafe { V::apply_elementwise(|v| V::sub_scalar(v, b), |a| lower.sub(a, b), a) };
+    }
+
     fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
         let lower = V::Lower::default();
         unsafe {
@@ -211,6 +258,7 @@ where
         }
     }
 
+    unary_activation!(exp);
     unary_activation!(gelu);
     unary_activation!(hard_sigmoid);
     unary_activation!(hard_tanh);

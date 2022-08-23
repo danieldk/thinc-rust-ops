@@ -69,6 +69,11 @@ pub trait SimdVector: Default + Send + Sync {
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float;
 
+    unsafe fn div_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
+        let b = Self::splat(b);
+        Self::div(a, b)
+    }
+
     /// Fused mutiply-add, a * b + c
     unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float;
 
@@ -111,6 +116,11 @@ pub trait SimdVector: Default + Send + Sync {
     unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float;
 
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float;
+
+    unsafe fn sub_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
+        let b = Self::splat(b);
+        Self::sub(a, b)
+    }
 
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float;
 
