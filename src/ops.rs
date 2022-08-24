@@ -78,7 +78,7 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| {
+            |s| unsafe {
                 self.array_f32.clipped_linear(
                     s,
                     slope as f32,
@@ -87,7 +87,7 @@ impl RustOps {
                     max_val as f32,
                 )
             },
-            |s| {
+            |s| unsafe {
                 self.array_f64
                     .clipped_linear(s, slope, offset, min_val, max_val)
             },
@@ -105,8 +105,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.gelu(s),
-            |s| self.array_f64.gelu(s),
+            |s| unsafe { self.array_f32.gelu(s) },
+            |s| unsafe { self.array_f64.gelu(s) },
         )
     }
 
@@ -121,8 +121,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.hard_sigmoid(s),
-            |s| self.array_f64.hard_sigmoid(s),
+            |s| unsafe { self.array_f32.hard_sigmoid(s) },
+            |s| unsafe { self.array_f64.hard_sigmoid(s) },
         )
     }
 
@@ -137,8 +137,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.hard_tanh(s),
-            |s| self.array_f64.hard_tanh(s),
+            |s| unsafe { self.array_f32.hard_tanh(s) },
+            |s| unsafe { self.array_f64.hard_tanh(s) },
         )
     }
 
@@ -188,8 +188,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.relu(s),
-            |s| self.array_f64.relu(s),
+            |s| unsafe { self.array_f32.relu(s) },
+            |s| unsafe { self.array_f64.relu(s) },
         )
     }
 
@@ -204,8 +204,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.logistic_cdf(s),
-            |s| self.array_f64.logistic_cdf(s),
+            |s| unsafe { self.array_f32.logistic_cdf(s) },
+            |s| unsafe { self.array_f64.logistic_cdf(s) },
         )
     }
 
@@ -234,16 +234,20 @@ impl RustOps {
         };
 
         match x {
-            PyArrayDynFloat::F32(a) => self.array_f32.softmax(
-                unsafe { a.as_slice_mut()? },
-                *shape.last().unwrap(),
-                temperature.map(|v| v as f32),
-            ),
-            PyArrayDynFloat::F64(a) => self.array_f64.softmax(
-                unsafe { a.as_slice_mut()? },
-                *shape.last().unwrap(),
-                temperature,
-            ),
+            PyArrayDynFloat::F32(a) => unsafe {
+                self.array_f32.softmax(
+                    unsafe { a.as_slice_mut()? },
+                    *shape.last().unwrap(),
+                    temperature.map(|v| v as f32),
+                )
+            },
+            PyArrayDynFloat::F64(a) => unsafe {
+                self.array_f64.softmax(
+                    unsafe { a.as_slice_mut()? },
+                    *shape.last().unwrap(),
+                    temperature,
+                )
+            },
         }
 
         Ok(x)
@@ -260,8 +264,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.swish(s),
-            |s| self.array_f64.swish(s),
+            |s| unsafe { self.array_f32.swish(s) },
+            |s| unsafe { self.array_f64.swish(s) },
         )
     }
 }

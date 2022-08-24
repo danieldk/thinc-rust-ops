@@ -2,8 +2,6 @@
 use std::arch::is_aarch64_feature_detected;
 use std::collections::HashMap;
 
-use num_traits::Float;
-
 use crate::activation::Activation;
 use crate::distribution::Distribution;
 use crate::elementary::Elementary;
@@ -117,10 +115,10 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
 }
 
 macro_rules! unary_activation {
-    ($j:ident) => {
-        fn $j(&self, a: &mut [Self::Scalar]) {
-            let lower = V::Lower::default();
-            unsafe { V::apply_elementwise(|v| V::$j(v), |a| lower.$j(a), a) }
+    ($t:ty, $j:ident) => {
+        unsafe fn $j(&self, a: &mut [Self::Scalar]) {
+            let lower = <Self as SimdVector>::Lower::default();
+            unsafe { <Self as SimdVector>::apply_elementwise(|v| <Self as $t>::$j(v), |a| lower.$j(a), a) }
         }
     };
 }
@@ -128,7 +126,7 @@ macro_rules! unary_activation {
 pub trait Array: Send + Sync {
     type Scalar;
 
-    fn clipped_linear(
+    unsafe fn clipped_linear(
         &self,
         a: &mut [Self::Scalar],
         slope: Self::Scalar,
@@ -137,135 +135,170 @@ pub trait Array: Send + Sync {
         max_val: Self::Scalar,
     );
 
-    fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar);
+    unsafe fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar);
 
-    fn exp(&self, a: &mut [Self::Scalar]);
+    unsafe fn exp(&self, a: &mut [Self::Scalar]);
 
-    fn gelu(&self, a: &mut [Self::Scalar]);
+    unsafe fn gelu(&self, a: &mut [Self::Scalar]);
 
-    fn hard_sigmoid(&self, a: &mut [Self::Scalar]);
+    unsafe fn hard_sigmoid(&self, a: &mut [Self::Scalar]);
 
-    fn hard_tanh(&self, a: &mut [Self::Scalar]);
+    unsafe fn hard_tanh(&self, a: &mut [Self::Scalar]);
 
-    fn logistic_cdf(&self, a: &mut [Self::Scalar]);
+    unsafe fn logistic_cdf(&self, a: &mut [Self::Scalar]);
 
-    fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar>;
+    unsafe fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar>;
 
-    fn relu(&self, a: &mut [Self::Scalar]);
+    unsafe fn relu(&self, a: &mut [Self::Scalar]);
 
-    fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>);
+    unsafe fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>);
 
-    fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar);
+    unsafe fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar);
 
-    fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar;
+    unsafe fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar;
 
-    fn swish(&self, a: &mut [Self::Scalar]);
+    unsafe fn swish(&self, a: &mut [Self::Scalar]);
 }
 
-impl<V, T, U> Array for V
-where
-    T: Copy,
-    U: Float,
-    V: Activation<Float = T, FloatScalar = U>
-        + Distribution<Float = T>
-        + Elementary<Float = T>
-        + SimdVector<Float = T, FloatScalar = U>,
-{
-    type Scalar = U;
+macro_rules! array_impl {
+    ($vector:ty, $target_feat:literal) => {
+        impl Array for $vector {
+            type Scalar = <$vector as SimdVector>::FloatScalar;
 
-    fn clipped_linear(
-        &self,
-        a: &mut [Self::Scalar],
-        slope: Self::Scalar,
-        offset: Self::Scalar,
-        min_val: Self::Scalar,
-        max_val: Self::Scalar,
-    ) {
-        let lower = V::Lower::default();
-        unsafe {
-            V::apply_elementwise(
-                |v| V::clipped_linear(v, slope, offset, min_val, max_val),
-                |a| lower.clipped_linear(a, slope, offset, min_val, max_val),
-                a,
-            )
+            #[target_feature(enable = $target_feat)]
+            unsafe fn clipped_linear(
+                &self,
+                a: &mut [Self::Scalar],
+                slope: Self::Scalar,
+                offset: Self::Scalar,
+                min_val: Self::Scalar,
+                max_val: Self::Scalar,
+            ) {
+                let lower = <Self as SimdVector>::Lower::default();
+                unsafe {
+                    <Self as SimdVector>::apply_elementwise(
+                        |v| <Self as Activation>::clipped_linear(v, slope, offset, min_val, max_val),
+                        |a| lower.clipped_linear(a, slope, offset, min_val, max_val),
+                        a,
+                    )
+                }
+            }
+
+            #[target_feature(enable = $target_feat)]
+            unsafe fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+                let lower = <Self as SimdVector>::Lower::default();
+                unsafe { <Self as SimdVector>::apply_elementwise(|v| <Self as SimdVector>::div_scalar(v, b), |a| lower.div(a, b), a) };
+            }
+
+            #[target_feature(enable = $target_feat)]
+            unsafe fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
+                if a.is_empty() {
+                    return None;
+                }
+
+                let lower = <Self as SimdVector>::Lower::default();
+                Some(unsafe {
+                    <Self as SimdVector>::reduce(
+                        |acc, v| <Self as SimdVector>::max(acc, v),
+                        |v| <Self as SimdVector>::max_lanes(v),
+                        |init, a| maximum(init, lower.max(a).unwrap()),
+                        a[0],
+                        a,
+                    )
+                })
+            }
+
+            #[target_feature(enable = $target_feat)]
+            unsafe fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>) {
+                assert!(n_class > 0);
+
+                if let Some(temperature) = temperature {
+                    self.div(a, temperature);
+                }
+
+                // Subtract maximum from each class to improve numeric stability.
+                let mut tmp = &mut *a;
+                while !tmp.is_empty() {
+                    let max = self.max(&tmp[..n_class]).expect("Cannot get maximum, zero classes?");
+                    self.sub(&mut tmp[..n_class], max);
+                    tmp = &mut tmp[n_class..];
+                }
+
+                // Exponentiate.
+                tmp = a;
+                self.exp(tmp);
+
+                // Normalize
+                while !tmp.is_empty() {
+                    let sum = self.sum(&tmp[..n_class]);
+                    self.div(&mut tmp[..n_class], sum);
+                    tmp = &mut tmp[n_class..];
+                }
+            }
+
+            #[target_feature(enable = $target_feat)]
+            unsafe fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+                let lower = <Self as SimdVector>::Lower::default();
+                unsafe { <Self as SimdVector>::apply_elementwise(|v| <Self as SimdVector>::sub_scalar(v, b), |a| lower.sub(a, b), a) };
+            }
+
+            #[target_feature(enable = $target_feat)]
+            unsafe fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
+                let lower = <Self as SimdVector>::Lower::default();
+                unsafe {
+                    <Self as SimdVector>::reduce(
+                        |acc, v| <Self as SimdVector>::add(acc, v),
+                        |v| <Self as SimdVector>::add_lanes(v),
+                        |init, a| init + lower.sum(a),
+                        Self::Scalar::from(0.0),
+                        a,
+                    )
+                }
+            }
+
+            unary_activation!(Elementary, exp);
+            unary_activation!(Activation, gelu);
+            unary_activation!(Activation, hard_sigmoid);
+            unary_activation!(Activation, hard_tanh);
+            unary_activation!(Distribution, logistic_cdf);
+            unary_activation!(Activation, relu);
+            unary_activation!(Activation, swish);
         }
-    }
-
-    fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::div_scalar(v, b), |a| lower.div(a, b), a) };
-    }
-
-    fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
-        if a.is_empty() {
-            return None;
-        }
-
-        let lower = V::Lower::default();
-        Some(unsafe {
-            V::reduce(
-                |acc, v| V::max(acc, v),
-                |v| V::max_lanes(v),
-                |init, a| maximum(init, lower.max(a).unwrap()),
-                a[0],
-                a,
-            )
-        })
-    }
-
-    fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>) {
-        assert!(n_class > 0);
-
-        if let Some(temperature) = temperature {
-            self.div(a, temperature);
-        }
-
-        // Subtract maximum from each class to improve numeric stability.
-        let mut tmp = &mut *a;
-        while !tmp.is_empty() {
-            let max = self.max(&tmp[..n_class]).expect("Cannot get maximum, zero classes?");
-            self.sub(&mut tmp[..n_class], max);
-            tmp = &mut tmp[n_class..];
-        }
-
-        // Exponentiate.
-        tmp = a;
-        self.exp(tmp);
-
-        // Normalize
-        while !tmp.is_empty() {
-            let sum = self.sum(&tmp[..n_class]);
-            self.div(&mut tmp[..n_class], sum);
-            tmp = &mut tmp[n_class..];
-        }
-    }
-
-    fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::sub_scalar(v, b), |a| lower.sub(a, b), a) };
-    }
-
-    fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
-        let lower = V::Lower::default();
-        unsafe {
-            V::reduce(
-                |acc, v| V::add(acc, v),
-                |v| V::add_lanes(v),
-                |init, a| init + lower.sum(a),
-                Self::Scalar::from(0.0).unwrap(),
-                a,
-            )
-        }
-    }
-
-    unary_activation!(exp);
-    unary_activation!(gelu);
-    unary_activation!(hard_sigmoid);
-    unary_activation!(hard_tanh);
-    unary_activation!(logistic_cdf);
-    unary_activation!(relu);
-    unary_activation!(swish);
+    };
 }
+
+
+#[cfg(target_arch = "aarch64")]
+array_impl!(NeonVector32, "neon");
+#[cfg(target_arch = "aarch64")]
+array_impl!(NeonVector64, "neon");
+#[cfg(target_arch = "aarch64")]
+array_impl!(ScalarVector32, "neon");
+#[cfg(target_arch = "aarch64")]
+array_impl!(ScalarVector64, "neon");
+
+#[cfg(target_arch = "x86_64")]
+array_impl!(ScalarVector32, "sse2");
+#[cfg(target_arch = "x86_64")]
+array_impl!(ScalarVector64, "sse2");
+#[cfg(target_arch = "x86_64")]
+array_impl!(SSE2Vector32, "sse2");
+#[cfg(target_arch = "x86_64")]
+array_impl!(SSE2Vector64, "sse2");
+#[cfg(target_arch = "x86_64")]
+array_impl!(SSE41Vector32, "sse4.1");
+#[cfg(target_arch = "x86_64")]
+array_impl!(SSE41Vector64, "sse4.1");
+#[cfg(target_arch = "x86_64")]
+array_impl!(AVXVector32, "avx");
+#[cfg(target_arch = "x86_64")]
+array_impl!(AVXVector64, "avx");
+#[cfg(target_arch = "x86_64")]
+array_impl!(AVX2Vector32, "avx2");
+#[cfg(target_arch = "x86_64")]
+array_impl!(AVX2Vector64, "avx2");
+
+
 
 #[cfg(test)]
 mod tests {
