@@ -1,9 +1,10 @@
+use std::mem;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use ndarray::{Array, Array1};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
-use simd_array::{all_arrays_f32, platform_arrays};
-use std::mem;
+use simd_array::all_platform_arrays;
 
 fn exp_benchmark(c: &mut Criterion) {
     let source: Array1<f32> = Array::random((2949120,), Uniform::new(0., 10.));
@@ -11,7 +12,7 @@ fn exp_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(
         (source.len() * mem::size_of::<f32>()) as u64,
     ));
-    for (name, array) in all_arrays_f32() {
+    for (name, (array, _)) in all_platform_arrays() {
         let mut test_array = source.clone();
         group.bench_function(&format!("exp {}", name), |b| {
             b.iter(|| array.exp(test_array.as_slice_mut().unwrap()))
