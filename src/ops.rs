@@ -3,7 +3,7 @@ use numpy::{PyArray2, PyArrayDyn, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::{pyclass, pymethods, FromPyObject, IntoPy, PyObject, PyResult, Python};
 
-use simd_array::{platform_arrays, SimdSlice};
+use simd_array::{PlatformSimdSlice, SimdSlice};
 
 #[derive(FromPyObject)]
 enum PyArrayDynFloat<'a> {
@@ -50,10 +50,9 @@ pub struct RustOps {
 impl RustOps {
     #[new]
     fn new() -> Self {
-        let (array_f32, array_f64) = platform_arrays();
         RustOps {
-            array_f32,
-            array_f64,
+            array_f32: f32::simd_slice(),
+            array_f64: f64::simd_slice(),
         }
     }
 

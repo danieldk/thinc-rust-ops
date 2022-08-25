@@ -26,8 +26,13 @@ use crate::vector::sse41::{SSE41Vector32, SSE41Vector64};
 use crate::vector::SimdVector;
 
 #[cfg(target_arch = "aarch64")]
-pub fn all_platform_arrays(
-) -> HashMap<String, (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>)> {
+pub fn all_platform_arrays() -> HashMap<
+    String,
+    (
+        Box<dyn SimdSlice<Scalar = f32>>,
+        Box<dyn SimdSlice<Scalar = f64>>,
+    ),
+> {
     let mut arrays = HashMap::new();
     arrays.insert(
         "scalar".to_string(),
@@ -48,8 +53,13 @@ pub fn all_platform_arrays(
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn all_platform_arrays(
-) -> HashMap<String, (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>)> {
+pub fn all_platform_arrays() -> HashMap<
+    String,
+    (
+        Box<dyn SimdSlice<Scalar = f32>>,
+        Box<dyn SimdSlice<Scalar = f64>>,
+    ),
+> {
     let mut arrays = HashMap::new();
     arrays.insert(
         "scalar".to_string(),
@@ -87,33 +97,91 @@ pub fn all_platform_arrays(
     arrays
 }
 
+pub trait PlatformSimdSlice {
+    type Scalar;
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>>;
+}
+
 #[cfg(target_arch = "aarch64")]
-pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
-    if is_aarch64_feature_detected!("neon") {
-        (Box::new(NeonVector32), Box::new(NeonVector64))
-    } else {
-        (Box::new(ScalarVector32), Box::new(ScalarVector64))
+impl PlatformSimdSlice for f32 {
+    type Scalar = f32;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        if is_aarch64_feature_detected!("neon") {
+            Box::new(NeonVector32)
+        } else {
+            Box::new(ScalarVector32)
+        }
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+impl PlatformSimdSlice for f64 {
+    type Scalar = f64;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        if is_aarch64_feature_detected!("neon") {
+            Box::new(NeonVector64)
+        } else {
+            Box::new(ScalarVector64)
+        }
     }
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
-    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
-        (Box::new(AVX2Vector32), Box::new(AVX2Vector64))
-    } else if is_x86_feature_detected!("avx") {
-        (Box::new(AVXVector32), Box::new(AVXVector64))
-    } else if is_x86_feature_detected!("sse4.1") {
-        (Box::new(SSE41Vector32), Box::new(SSE41Vector64))
-    } else if is_x86_feature_detected!("sse2") {
-        (Box::new(SSE2Vector32), Box::new(SSE2Vector64))
-    } else {
-        (Box::new(ScalarVector32), Box::new(ScalarVector64))
+impl PlatformSimdSlice for f32 {
+    type Scalar = f32;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+            Box::new(AVX2Vector32)
+        } else if is_x86_feature_detected!("avx") {
+            Box::new(AVXVector32)
+        } else if is_x86_feature_detected!("sse4.1") {
+            Box::new(SSE41Vector32)
+        } else if is_x86_feature_detected!("sse2") {
+            Box::new(SSE2Vector32)
+        } else {
+            Box::new(ScalarVector32)
+        }
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+impl PlatformSimdSlice for f64 {
+    type Scalar = f64;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+            Box::new(AVX2Vector64)
+        } else if is_x86_feature_detected!("avx") {
+            Box::new(AVXVector64)
+        } else if is_x86_feature_detected!("sse4.1") {
+            Box::new(SSE41Vector64)
+        } else if is_x86_feature_detected!("sse2") {
+            Box::new(SSE2Vector64)
+        } else {
+            Box::new(ScalarVector64)
+        }
     }
 }
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
-pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
-    (Box::new(ScalarVector32), Box::new(ScalarVector64))
+impl PlatformSimdSlice for f32 {
+    type Scalar = f32;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        Box::new(ScalarVector32)
+    }
+}
+
+#[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
+impl PlatformSimdSlice for f64 {
+    type Scalar = f64;
+
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+        Box::new(ScalarVector64)
+    }
 }
 
 macro_rules! unary_activation {
@@ -223,7 +291,9 @@ where
         // Subtract maximum from each class to improve numeric stability.
         let mut tmp = &mut *a;
         while !tmp.is_empty() {
-            let max = self.max(&tmp[..n_class]).expect("Cannot get maximum, zero classes?");
+            let max = self
+                .max(&tmp[..n_class])
+                .expect("Cannot get maximum, zero classes?");
             self.sub(&mut tmp[..n_class], max);
             tmp = &mut tmp[n_class..];
         }

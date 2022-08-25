@@ -5,7 +5,7 @@ mod distribution;
 mod elementary;
 
 mod slice;
-pub use slice::{all_platform_arrays, platform_arrays, SimdSlice};
+pub use slice::{all_platform_arrays, PlatformSimdSlice, SimdSlice};
 
 pub(crate) mod util;
 
