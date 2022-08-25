@@ -3,7 +3,7 @@ use numpy::{PyArray2, PyArrayDyn, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::{pyclass, pymethods, FromPyObject, IntoPy, PyObject, PyResult, Python};
 
-use simd_array::{platform_arrays, Array};
+use simd_array::{platform_arrays, SimdSlice};
 
 #[derive(FromPyObject)]
 enum PyArrayDynFloat<'a> {
@@ -42,8 +42,8 @@ impl<'a> IntoPy<PyObject> for PyArrayDynFloat<'a> {
 
 #[pyclass(subclass)]
 pub struct RustOps {
-    array_f32: Box<dyn Array<Scalar = f32>>,
-    array_f64: Box<dyn Array<Scalar = f64>>,
+    array_f32: Box<dyn SimdSlice<Scalar = f32>>,
+    array_f64: Box<dyn SimdSlice<Scalar = f64>>,
 }
 
 #[pymethods]

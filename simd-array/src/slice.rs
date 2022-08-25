@@ -27,13 +27,13 @@ use crate::vector::SimdVector;
 
 #[cfg(target_arch = "aarch64")]
 pub fn all_platform_arrays(
-) -> HashMap<String, (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>)> {
+) -> HashMap<String, (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>)> {
     let mut arrays = HashMap::new();
     arrays.insert(
         "scalar".to_string(),
         (
-            Box::new(ScalarVector32) as Box<dyn Array<Scalar = f32>>,
-            Box::new(ScalarVector64) as Box<dyn Array<Scalar = f64>>,
+            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
+            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
         ),
     );
 
@@ -49,13 +49,13 @@ pub fn all_platform_arrays(
 
 #[cfg(target_arch = "x86_64")]
 pub fn all_platform_arrays(
-) -> HashMap<String, (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>)> {
+) -> HashMap<String, (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>)> {
     let mut arrays = HashMap::new();
     arrays.insert(
         "scalar".to_string(),
         (
-            Box::new(ScalarVector32) as Box<dyn Array<Scalar = f32>>,
-            Box::new(ScalarVector64) as Box<dyn Array<Scalar = f64>>,
+            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
+            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
         ),
     );
 
@@ -88,7 +88,7 @@ pub fn all_platform_arrays(
 }
 
 #[cfg(target_arch = "aarch64")]
-pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
+pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
     if is_aarch64_feature_detected!("neon") {
         (Box::new(NeonVector32), Box::new(NeonVector64))
     } else {
@@ -97,7 +97,7 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
+pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
     if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
         (Box::new(AVX2Vector32), Box::new(AVX2Vector64))
     } else if is_x86_feature_detected!("avx") {
@@ -112,7 +112,7 @@ pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar 
 }
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
-pub fn platform_arrays() -> (Box<dyn Array<Scalar = f32>>, Box<dyn Array<Scalar = f64>>) {
+pub fn platform_arrays() -> (Box<dyn SimdSlice<Scalar = f32>>, Box<dyn SimdSlice<Scalar = f64>>) {
     (Box::new(ScalarVector32), Box::new(ScalarVector64))
 }
 
@@ -125,7 +125,7 @@ macro_rules! unary_activation {
     };
 }
 
-pub trait Array: Send + Sync {
+pub trait SimdSlice: Send + Sync {
     type Scalar;
 
     fn clipped_linear(
@@ -162,7 +162,7 @@ pub trait Array: Send + Sync {
     fn swish(&self, a: &mut [Self::Scalar]);
 }
 
-impl<V, T, U> Array for V
+impl<V, T, U> SimdSlice for V
 where
     T: Copy,
     U: Float,
@@ -275,9 +275,9 @@ mod tests {
     use ordered_float::OrderedFloat;
     use quickcheck_macros::quickcheck;
 
-    use super::{all_platform_arrays, Array};
+    use super::{all_platform_arrays, SimdSlice};
 
-    fn test_max<S: Float>(arrays: &[Box<dyn Array<Scalar = S>>], a: &[S]) -> bool {
+    fn test_max<S: Float>(arrays: &[Box<dyn SimdSlice<Scalar = S>>], a: &[S]) -> bool {
         for array in arrays {
             let check = a.iter().max_by_key(|&&v| OrderedFloat(v)).cloned();
             let r = array.max(&a);
@@ -308,7 +308,7 @@ mod tests {
         test_max(&arrays_f64, &a)
     }
 
-    fn test_sum_special_values<S>(array: &dyn Array<Scalar = S>)
+    fn test_sum_special_values<S>(array: &dyn SimdSlice<Scalar = S>)
     where
         S: Float,
     {
@@ -325,7 +325,7 @@ mod tests {
         }
     }
 
-    fn test_sum_triangular<S>(array: &dyn Array<Scalar = S>)
+    fn test_sum_triangular<S>(array: &dyn SimdSlice<Scalar = S>)
     where
         S: fmt::Debug + Float,
     {
