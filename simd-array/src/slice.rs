@@ -98,15 +98,12 @@ pub fn all_platform_arrays() -> HashMap<
 }
 
 pub trait PlatformSimdSlice {
-    type Scalar;
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>>;
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>>;
 }
 
 #[cfg(target_arch = "aarch64")]
 impl PlatformSimdSlice for f32 {
-    type Scalar = f32;
-
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>> {
         if is_aarch64_feature_detected!("neon") {
             Box::new(NeonVector32)
         } else {
@@ -117,9 +114,7 @@ impl PlatformSimdSlice for f32 {
 
 #[cfg(target_arch = "aarch64")]
 impl PlatformSimdSlice for f64 {
-    type Scalar = f64;
-
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>> {
         if is_aarch64_feature_detected!("neon") {
             Box::new(NeonVector64)
         } else {
@@ -130,9 +125,7 @@ impl PlatformSimdSlice for f64 {
 
 #[cfg(target_arch = "x86_64")]
 impl PlatformSimdSlice for f32 {
-    type Scalar = f32;
-
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>> {
         if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
             Box::new(AVX2Vector32)
         } else if is_x86_feature_detected!("avx") {
@@ -149,9 +142,7 @@ impl PlatformSimdSlice for f32 {
 
 #[cfg(target_arch = "x86_64")]
 impl PlatformSimdSlice for f64 {
-    type Scalar = f64;
-
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>> {
         if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
             Box::new(AVX2Vector64)
         } else if is_x86_feature_detected!("avx") {
@@ -168,9 +159,7 @@ impl PlatformSimdSlice for f64 {
 
 #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
 impl PlatformSimdSlice for f32 {
-    type Scalar = f32;
-
-    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self::Scalar>> {
+    fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>> {
         Box::new(ScalarVector32)
     }
 }

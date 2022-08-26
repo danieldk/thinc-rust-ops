@@ -542,7 +542,9 @@ version = "0.1.0"
 dependencies = [
  "aligned",
  "as-slice",
+ "ndarray",
  "num-traits",
+ "thiserror",
 ]
 
 [[package]]
