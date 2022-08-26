@@ -2,12 +2,6 @@
 use std::arch::is_aarch64_feature_detected;
 use std::collections::HashMap;
 
-use num_traits::Float;
-
-use crate::activation::Activation;
-use crate::distribution::Distribution;
-use crate::elementary::Elementary;
-use crate::util::maximum;
 #[cfg(target_arch = "x86_64")]
 use crate::vector::avx::AVXVector32;
 #[cfg(target_arch = "x86_64")]
@@ -23,7 +17,6 @@ use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 use crate::vector::sse2::{SSE2Vector32, SSE2Vector64};
 #[cfg(target_arch = "x86_64")]
 use crate::vector::sse41::{SSE41Vector32, SSE41Vector64};
-use crate::vector::SimdVector;
 
 #[cfg(target_arch = "aarch64")]
 pub fn all_platform_arrays() -> HashMap<
@@ -174,10 +167,16 @@ impl PlatformSimdSlice for f64 {
 }
 
 macro_rules! unary_activation {
-    ($j:ident) => {
+    ($type:ty, $j:ident) => {
         fn $j(&self, a: &mut [Self::Scalar]) {
-            let lower = V::Lower::default();
-            unsafe { V::apply_elementwise(|v| V::$j(v), |a| lower.$j(a), a) }
+            let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+            unsafe {
+                <Self as $crate::vector::SimdVector>::apply_elementwise(
+                    |v| <Self as $type>::$j(v),
+                    |a| lower.$j(a),
+                    a,
+                )
+            }
         }
     };
 }
@@ -219,111 +218,156 @@ pub trait SimdSlice: Send + Sync {
     fn swish(&self, a: &mut [Self::Scalar]);
 }
 
-impl<V, T, U> SimdSlice for V
-where
-    T: Copy,
-    U: Float,
-    V: Activation<Float = T, FloatScalar = U>
-        + Distribution<Float = T>
-        + Elementary<Float = T>
-        + SimdVector<Float = T, FloatScalar = U>,
-{
-    type Scalar = U;
+macro_rules! simd_slice_impl {
+    ($vector:ty) => {
+        impl $crate::slice::SimdSlice for $vector {
+            type Scalar = <$vector as $crate::vector::SimdVector>::FloatScalar;
 
-    fn clipped_linear(
-        &self,
-        a: &mut [Self::Scalar],
-        slope: Self::Scalar,
-        offset: Self::Scalar,
-        min_val: Self::Scalar,
-        max_val: Self::Scalar,
-    ) {
-        let lower = V::Lower::default();
-        unsafe {
-            V::apply_elementwise(
-                |v| V::clipped_linear(v, slope, offset, min_val, max_val),
-                |a| lower.clipped_linear(a, slope, offset, min_val, max_val),
-                a,
-            )
+            fn clipped_linear(
+                &self,
+                a: &mut [Self::Scalar],
+                slope: Self::Scalar,
+                offset: Self::Scalar,
+                min_val: Self::Scalar,
+                max_val: Self::Scalar,
+            ) {
+                let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+                unsafe {
+                    <Self as $crate::vector::SimdVector>::apply_elementwise(
+                        |v| {
+                            <Self as $crate::activation::Activation>::clipped_linear(
+                                v, slope, offset, min_val, max_val,
+                            )
+                        },
+                        |a| lower.clipped_linear(a, slope, offset, min_val, max_val),
+                        a,
+                    )
+                }
+            }
+
+            fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+                let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+                unsafe {
+                    <Self as $crate::vector::SimdVector>::apply_elementwise(
+                        |v| <Self as $crate::vector::SimdVector>::div_scalar(v, b),
+                        |a| lower.div(a, b),
+                        a,
+                    )
+                };
+            }
+
+            fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
+                if a.is_empty() {
+                    return None;
+                }
+
+                let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+                Some(unsafe {
+                    <Self as $crate::vector::SimdVector>::reduce(
+                        |acc, v| <Self as $crate::vector::SimdVector>::max(acc, v),
+                        |v| <Self as $crate::vector::SimdVector>::max_lanes(v),
+                        |init, a| $crate::util::maximum(init, lower.max(a).unwrap()),
+                        a[0],
+                        a,
+                    )
+                })
+            }
+
+            fn softmax(
+                &self,
+                a: &mut [Self::Scalar],
+                n_class: usize,
+                temperature: Option<Self::Scalar>,
+            ) {
+                assert!(n_class > 0);
+
+                if let Some(temperature) = temperature {
+                    self.div(a, temperature);
+                }
+
+                // Subtract maximum from each class to improve numeric stability.
+                let mut tmp = &mut *a;
+                while !tmp.is_empty() {
+                    let max = self
+                        .max(&tmp[..n_class])
+                        .expect("Cannot get maximum, zero classes?");
+                    self.sub(&mut tmp[..n_class], max);
+                    tmp = &mut tmp[n_class..];
+                }
+
+                // Exponentiate.
+                tmp = a;
+                self.exp(tmp);
+
+                // Normalize
+                while !tmp.is_empty() {
+                    let sum = self.sum(&tmp[..n_class]);
+                    self.div(&mut tmp[..n_class], sum);
+                    tmp = &mut tmp[n_class..];
+                }
+            }
+
+            fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
+                let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+                unsafe {
+                    <Self as $crate::vector::SimdVector>::apply_elementwise(
+                        |v| <Self as $crate::vector::SimdVector>::sub_scalar(v, b),
+                        |a| lower.sub(a, b),
+                        a,
+                    )
+                };
+            }
+
+            fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
+                let lower = <Self as $crate::vector::SimdVector>::Lower::default();
+                unsafe {
+                    <Self as $crate::vector::SimdVector>::reduce(
+                        |acc, v| <Self as $crate::vector::SimdVector>::add(acc, v),
+                        |v| <Self as $crate::vector::SimdVector>::add_lanes(v),
+                        |init, a| init + lower.sum(a),
+                        Self::Scalar::from(0.0),
+                        a,
+                    )
+                }
+            }
+
+            unary_activation!($crate::elementary::Elementary, exp);
+            unary_activation!($crate::activation::Activation, gelu);
+            unary_activation!($crate::activation::Activation, hard_sigmoid);
+            unary_activation!($crate::activation::Activation, hard_tanh);
+            unary_activation!($crate::distribution::Distribution, logistic_cdf);
+            unary_activation!($crate::activation::Activation, relu);
+            unary_activation!($crate::activation::Activation, swish);
         }
-    }
+    };
+}
 
-    fn div(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::div_scalar(v, b), |a| lower.div(a, b), a) };
-    }
+simd_slice_impl!(ScalarVector32);
+simd_slice_impl!(ScalarVector64);
 
-    fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
-        if a.is_empty() {
-            return None;
-        }
+#[cfg(target_arch = "aarch64")]
+mod neon {
+    use crate::vector::neon::{NeonVector32, NeonVector64};
 
-        let lower = V::Lower::default();
-        Some(unsafe {
-            V::reduce(
-                |acc, v| V::max(acc, v),
-                |v| V::max_lanes(v),
-                |init, a| maximum(init, lower.max(a).unwrap()),
-                a[0],
-                a,
-            )
-        })
-    }
+    simd_slice_impl!(NeonVector32);
+    simd_slice_impl!(NeonVector64);
+}
 
-    fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>) {
-        assert!(n_class > 0);
+#[cfg(target_arch = "x86_64")]
+mod x86_64 {
+    use crate::vector::avx::{AVXVector32, AVXVector64};
+    use crate::vector::avx2::{AVX2Vector32, AVX2Vector64};
+    use crate::vector::sse2::{SSE2Vector32, SSE2Vector64};
+    use crate::vector::sse41::{SSE41Vector32, SSE41Vector64};
 
-        if let Some(temperature) = temperature {
-            self.div(a, temperature);
-        }
-
-        // Subtract maximum from each class to improve numeric stability.
-        let mut tmp = &mut *a;
-        while !tmp.is_empty() {
-            let max = self
-                .max(&tmp[..n_class])
-                .expect("Cannot get maximum, zero classes?");
-            self.sub(&mut tmp[..n_class], max);
-            tmp = &mut tmp[n_class..];
-        }
-
-        // Exponentiate.
-        tmp = a;
-        self.exp(tmp);
-
-        // Normalize
-        while !tmp.is_empty() {
-            let sum = self.sum(&tmp[..n_class]);
-            self.div(&mut tmp[..n_class], sum);
-            tmp = &mut tmp[n_class..];
-        }
-    }
-
-    fn sub(&self, a: &mut [Self::Scalar], b: Self::Scalar) {
-        let lower = V::Lower::default();
-        unsafe { V::apply_elementwise(|v| V::sub_scalar(v, b), |a| lower.sub(a, b), a) };
-    }
-
-    fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar {
-        let lower = V::Lower::default();
-        unsafe {
-            V::reduce(
-                |acc, v| V::add(acc, v),
-                |v| V::add_lanes(v),
-                |init, a| init + lower.sum(a),
-                Self::Scalar::from(0.0).unwrap(),
-                a,
-            )
-        }
-    }
-
-    unary_activation!(exp);
-    unary_activation!(gelu);
-    unary_activation!(hard_sigmoid);
-    unary_activation!(hard_tanh);
-    unary_activation!(logistic_cdf);
-    unary_activation!(relu);
-    unary_activation!(swish);
+    simd_slice_impl!(SSE2Vector32);
+    simd_slice_impl!(SSE2Vector64);
+    simd_slice_impl!(SSE41Vector32);
+    simd_slice_impl!(SSE41Vector64);
+    simd_slice_impl!(AVXVector32);
+    simd_slice_impl!(AVXVector64);
+    simd_slice_impl!(AVX2Vector32);
+    simd_slice_impl!(AVX2Vector64);
 }
 
 #[cfg(test)]
