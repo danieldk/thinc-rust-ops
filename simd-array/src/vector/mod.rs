@@ -186,28 +186,26 @@ unsafe fn apply_elementwise_generic<V>(
 }
 
 macro_rules! reduce_generic {
-    ($v:ty,$f:ident,$f_lanes:ident,$f_rest:ident,$init:ident,$a:ident) => {
-        {
-            let elem_size = mem::size_of::<<$v>::Float>() / mem::size_of::<<$v>::FloatScalar>();
+    ($v:ty,$f:ident,$f_lanes:ident,$f_rest:ident,$init:ident,$a:ident) => {{
+        let elem_size = mem::size_of::<<$v>::Float>() / mem::size_of::<<$v>::FloatScalar>();
 
-            let mut a = $a;
-            let mut acc = <$v>::splat($init);
+        let mut a = $a;
+        let mut acc = <$v>::splat($init);
 
-            while a.len() >= elem_size {
-                let val = <$v>::load(a);
-                acc = $f(acc, val);
-                a = &a[elem_size..];
-            }
-
-            let scalar = $f_lanes(acc);
-
-            if a.is_empty() {
-                scalar
-            } else {
-                $f_rest(scalar, a)
-            }
+        while a.len() >= elem_size {
+            let val = <$v>::load(a);
+            acc = $f(acc, val);
+            a = &a[elem_size..];
         }
-    };
+
+        let scalar = $f_lanes(acc);
+
+        if a.is_empty() {
+            scalar
+        } else {
+            $f_rest(scalar, a)
+        }
+    }};
 }
 
 pub mod scalar;
