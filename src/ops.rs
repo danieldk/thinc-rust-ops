@@ -1,9 +1,9 @@
 use ndarray::linalg::general_mat_mul;
+use ndarray::ArrayViewMutD;
 use numpy::{PyArray2, PyArrayDyn, PyReadonlyArray2};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{self, PyValueError};
 use pyo3::{pyclass, pymethods, FromPyObject, IntoPy, PyObject, PyResult, Python};
-
-use simd_array::{PlatformSimdSlice, SimdSlice};
+use simd_array::{SimdArrayError, SimdArrayMut};
 
 #[derive(FromPyObject)]
 enum PyArrayDynFloat<'a> {
@@ -41,19 +41,13 @@ impl<'a> IntoPy<PyObject> for PyArrayDynFloat<'a> {
 }
 
 #[pyclass(subclass)]
-pub struct RustOps {
-    array_f32: Box<dyn SimdSlice<Scalar = f32>>,
-    array_f64: Box<dyn SimdSlice<Scalar = f64>>,
-}
+pub struct RustOps;
 
 #[pymethods]
 impl RustOps {
     #[new]
     fn new() -> Self {
-        RustOps {
-            array_f32: f32::simd_slice(),
-            array_f64: f64::simd_slice(),
-        }
+        RustOps
     }
 
     #[args(
@@ -77,19 +71,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| {
-                self.array_f32.clipped_linear(
-                    s,
-                    slope as f32,
-                    offset as f32,
-                    min_val as f32,
-                    max_val as f32,
-                )
-            },
-            |s| {
-                self.array_f64
-                    .clipped_linear(s, slope, offset, min_val, max_val)
-            },
+            |mut a| a.clipped_linear(slope as f32, offset as f32, min_val as f32, max_val as f32),
+            |mut a| a.clipped_linear(slope, offset, min_val, max_val),
         )
     }
 
@@ -100,13 +83,7 @@ impl RustOps {
         x: PyArrayDynFloat<'py>,
         inplace: bool,
     ) -> PyResult<PyArrayDynFloat<'py>> {
-        Self::elementwise_op(
-            py,
-            x,
-            inplace,
-            |s| self.array_f32.gelu(s),
-            |s| self.array_f64.gelu(s),
-        )
+        Self::elementwise_op(py, x, inplace, |mut a| a.gelu(), |mut a| a.gelu())
     }
 
     #[args(inplace = "false")]
@@ -120,8 +97,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.hard_sigmoid(s),
-            |s| self.array_f64.hard_sigmoid(s),
+            |mut a| a.hard_sigmoid(),
+            |mut a| a.hard_sigmoid(),
         )
     }
 
@@ -132,13 +109,7 @@ impl RustOps {
         x: PyArrayDynFloat<'py>,
         inplace: bool,
     ) -> PyResult<PyArrayDynFloat<'py>> {
-        Self::elementwise_op(
-            py,
-            x,
-            inplace,
-            |s| self.array_f32.hard_tanh(s),
-            |s| self.array_f64.hard_tanh(s),
-        )
+        Self::elementwise_op(py, x, inplace, |mut a| a.hard_tanh(), |mut a| a.hard_tanh())
     }
 
     #[args("*", out = "None", trans1 = "false", trans2 = "false")]
@@ -183,13 +154,7 @@ impl RustOps {
         x: PyArrayDynFloat<'py>,
         inplace: bool,
     ) -> PyResult<PyArrayDynFloat<'py>> {
-        Self::elementwise_op(
-            py,
-            x,
-            inplace,
-            |s| self.array_f32.relu(s),
-            |s| self.array_f64.relu(s),
-        )
+        Self::elementwise_op(py, x, inplace, |mut a| a.relu(), |mut a| a.relu())
     }
 
     #[args(inplace = "false")]
@@ -203,8 +168,8 @@ impl RustOps {
             py,
             x,
             inplace,
-            |s| self.array_f32.logistic_cdf(s),
-            |s| self.array_f64.logistic_cdf(s),
+            |mut a| a.logistic_cdf(),
+            |mut a| a.logistic_cdf(),
         )
     }
 
@@ -232,18 +197,18 @@ impl RustOps {
             Some(temperature)
         };
 
-        match x {
-            PyArrayDynFloat::F32(a) => self.array_f32.softmax(
-                unsafe { a.as_slice_mut()? },
-                *shape.last().unwrap(),
-                temperature.map(|v| v as f32),
-            ),
-            PyArrayDynFloat::F64(a) => self.array_f64.softmax(
-                unsafe { a.as_slice_mut()? },
-                *shape.last().unwrap(),
-                temperature,
-            ),
-        }
+        let r = match x {
+            PyArrayDynFloat::F32(a) => {
+                let mut a = unsafe { a.as_array_mut() };
+                a.softmax(*shape.last().unwrap(), temperature.map(|v| v as f32))
+            }
+            PyArrayDynFloat::F64(a) => {
+                let mut a = unsafe { a.as_array_mut() };
+                a.softmax(*shape.last().unwrap(), temperature)
+            }
+        };
+
+        simd_array_error_to_py(r)?;
 
         Ok(x)
     }
@@ -255,13 +220,7 @@ impl RustOps {
         x: PyArrayDynFloat<'py>,
         inplace: bool,
     ) -> PyResult<PyArrayDynFloat<'py>> {
-        Self::elementwise_op(
-            py,
-            x,
-            inplace,
-            |s| self.array_f32.swish(s),
-            |s| self.array_f64.swish(s),
-        )
+        Self::elementwise_op(py, x, inplace, |mut a| a.swish(), |mut a| a.swish())
     }
 }
 
@@ -270,24 +229,36 @@ impl RustOps {
         py: Python<'py>,
         mut x: PyArrayDynFloat<'py>,
         inplace: bool,
-        apply_f32: impl Fn(&mut [f32]) + Sync,
-        apply_f64: impl Fn(&mut [f64]) + Sync,
+        apply_f32: impl Fn(ArrayViewMutD<f32>) -> Result<(), SimdArrayError> + Sync,
+        apply_f64: impl Fn(ArrayViewMutD<f64>) -> Result<(), SimdArrayError> + Sync,
     ) -> PyResult<PyArrayDynFloat<'py>> {
         if !inplace {
             x = x.copy_array(py)
         }
 
-        match x {
+        let r = match x {
             PyArrayDynFloat::F32(x) => {
-                let s = unsafe { x.as_slice_mut()? };
-                py.allow_threads(|| apply_f32(s));
+                let mut a = unsafe { x.as_array_mut() };
+                py.allow_threads(|| apply_f32(a.view_mut()))
             }
             PyArrayDynFloat::F64(x) => {
-                let s = unsafe { x.as_slice_mut()? };
-                py.allow_threads(|| apply_f64(s));
+                let mut a = unsafe { x.as_array_mut() };
+                py.allow_threads(|| apply_f64(a.view_mut()))
             }
         };
 
+        simd_array_error_to_py(r)?;
+
         Ok(x)
     }
+}
+
+// We could implement `From` trait, but we need a wrapper for the Rust
+// type. Keep it simple for now and just make a small conversion function.
+fn simd_array_error_to_py<T>(r: Result<T, SimdArrayError>) -> PyResult<T> {
+    r.map_err(|err| match err {
+        SimdArrayError::NonContiguous => {
+            exceptions::PyRuntimeError::new_err("array is not contiguous")
+        }
+    })
 }
