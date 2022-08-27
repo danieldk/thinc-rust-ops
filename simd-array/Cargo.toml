@@ -12,7 +12,14 @@ thiserror = "1"
 
 [dev-dependencies]
 approx = "0.5"
+criterion = "0.3"
 libm = "0.2"
+ndarray = "0.15"
+ndarray-rand = "0.14"
 ordered-float = "3"
 quickcheck = "1"
 quickcheck_macros = "1"
+
+[[bench]]
+name = "slice"
+harness = false

@@ -1,6 +1,6 @@
 #[cfg(target_arch = "aarch64")]
 use std::arch::is_aarch64_feature_detected;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use num_traits::Float;
 
@@ -25,80 +25,12 @@ use crate::vector::sse2::{SSE2Vector32, SSE2Vector64};
 use crate::vector::sse41::{SSE41Vector32, SSE41Vector64};
 use crate::vector::SimdVector;
 
-#[cfg(target_arch = "aarch64")]
-pub fn all_platform_arrays() -> HashMap<
-    String,
-    (
-        Box<dyn SimdSlice<Scalar = f32>>,
-        Box<dyn SimdSlice<Scalar = f64>>,
-    ),
-> {
-    let mut arrays = HashMap::new();
-    arrays.insert(
-        "scalar".to_string(),
-        (
-            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
-            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
-        ),
-    );
-
-    if is_aarch64_feature_detected!("neon") {
-        arrays.insert(
-            "neon".to_string(),
-            (Box::new(NeonVector32), Box::new(NeonVector64)),
-        );
-    }
-
-    arrays
-}
-
-#[cfg(target_arch = "x86_64")]
-pub fn all_platform_arrays() -> HashMap<
-    String,
-    (
-        Box<dyn SimdSlice<Scalar = f32>>,
-        Box<dyn SimdSlice<Scalar = f64>>,
-    ),
-> {
-    let mut arrays = HashMap::new();
-    arrays.insert(
-        "scalar".to_string(),
-        (
-            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
-            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
-        ),
-    );
-
-    if is_x86_feature_detected!("sse2") {
-        arrays.insert(
-            "sse2".to_string(),
-            (Box::new(SSE2Vector32), Box::new(SSE2Vector64)),
-        );
-    }
-    if is_x86_feature_detected!("sse4.1") {
-        arrays.insert(
-            "sse4.1".to_string(),
-            (Box::new(SSE41Vector32), Box::new(SSE41Vector64)),
-        );
-    }
-    if is_x86_feature_detected!("avx") {
-        arrays.insert(
-            "avx2".to_string(),
-            (Box::new(AVXVector32), Box::new(AVXVector64)),
-        );
-    }
-    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
-        arrays.insert(
-            "avx2".to_string(),
-            (Box::new(AVX2Vector32), Box::new(AVX2Vector64)),
-        );
-    }
-
-    arrays
-}
-
 pub trait PlatformSimdSlice {
+    /// Get the best SIMD slice implementation for the CPU.
     fn simd_slice() -> Box<dyn SimdSlice<Scalar = Self>>;
+
+    /// Get all SIMD slice implementations for the CPU.
+    fn all_simd_slice() -> BTreeMap<String, Box<dyn SimdSlice<Scalar = Self>>>;
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -110,6 +42,21 @@ impl PlatformSimdSlice for f32 {
             Box::new(ScalarVector32)
         }
     }
+
+    fn all_simd_slice() -> BTreeMap<String, Box<dyn SimdSlice<Scalar = Self>>> {
+        let mut r = BTreeMap::new();
+
+        r.insert(
+            "scalar".to_string(),
+            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
+        );
+
+        if is_aarch64_feature_detected!("neon") {
+            r.insert("neon".to_string(), Box::new(NeonVector32));
+        }
+
+        r
+    }
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -120,6 +67,21 @@ impl PlatformSimdSlice for f64 {
         } else {
             Box::new(ScalarVector64)
         }
+    }
+
+    fn all_simd_slice() -> BTreeMap<String, Box<dyn SimdSlice<Scalar = Self>>> {
+        let mut r = BTreeMap::new();
+
+        r.insert(
+            "scalar".to_string(),
+            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
+        );
+
+        if is_aarch64_feature_detected!("neon") {
+            r.insert("neon".to_string(), Box::new(NeonVector64));
+        }
+
+        r
     }
 }
 
@@ -138,6 +100,29 @@ impl PlatformSimdSlice for f32 {
             Box::new(ScalarVector32)
         }
     }
+
+    fn all_simd_slice() -> BTreeMap<String, Box<dyn SimdSlice<Scalar = Self>>> {
+        let mut r = BTreeMap::new();
+        r.insert(
+            "scalar".to_string(),
+            Box::new(ScalarVector32) as Box<dyn SimdSlice<Scalar = f32>>,
+        );
+
+        if is_x86_feature_detected!("sse2") {
+            r.insert("sse2".to_string(), Box::new(SSE2Vector32));
+        }
+        if is_x86_feature_detected!("sse4.1") {
+            r.insert("sse4.1".to_string(), Box::new(SSE41Vector32));
+        }
+        if is_x86_feature_detected!("avx") {
+            r.insert("avx".to_string(), Box::new(AVXVector32));
+        }
+        if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+            r.insert("avx2".to_string(), Box::new(AVX2Vector32));
+        }
+
+        r
+    }
 }
 
 #[cfg(target_arch = "x86_64")]
@@ -154,6 +139,29 @@ impl PlatformSimdSlice for f64 {
         } else {
             Box::new(ScalarVector64)
         }
+    }
+
+    fn all_simd_slice() -> BTreeMap<String, Box<dyn SimdSlice<Scalar = Self>>> {
+        let mut r = BTreeMap::new();
+        r.insert(
+            "scalar".to_string(),
+            Box::new(ScalarVector64) as Box<dyn SimdSlice<Scalar = f64>>,
+        );
+
+        if is_x86_feature_detected!("sse2") {
+            r.insert("sse2".to_string(), Box::new(SSE2Vector64));
+        }
+        if is_x86_feature_detected!("sse4.1") {
+            r.insert("sse4.1".to_string(), Box::new(SSE41Vector64));
+        }
+        if is_x86_feature_detected!("avx") {
+            r.insert("avx2".to_string(), Box::new(AVXVector64));
+        }
+        if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+            r.insert("avx2".to_string(), Box::new(AVX2Vector64));
+        }
+
+        r
     }
 }
 
@@ -334,10 +342,10 @@ mod tests {
     use ordered_float::OrderedFloat;
     use quickcheck_macros::quickcheck;
 
-    use super::{all_platform_arrays, SimdSlice};
+    use super::{PlatformSimdSlice, SimdSlice};
 
-    fn test_max<S: Float>(arrays: &[Box<dyn SimdSlice<Scalar = S>>], a: &[S]) -> bool {
-        for array in arrays {
+    fn test_max<S: Float>(simd_slice: &[Box<dyn SimdSlice<Scalar = S>>], a: &[S]) -> bool {
+        for array in simd_slice {
             let check = a.iter().max_by_key(|&&v| OrderedFloat(v)).cloned();
             let r = array.max(&a);
 
@@ -351,64 +359,58 @@ mod tests {
 
     #[quickcheck]
     fn test_max_f32(a: Vec<f32>) -> bool {
-        let arrays_f32 = all_platform_arrays()
-            .into_values()
-            .map(|a| a.0)
-            .collect::<Vec<_>>();
-        test_max(&arrays_f32, &a)
+        let simd_slice = f32::all_simd_slice().into_values().collect::<Vec<_>>();
+        test_max(&simd_slice, &a)
     }
 
     #[quickcheck]
     fn test_max_f64(a: Vec<f64>) -> bool {
-        let arrays_f64 = all_platform_arrays()
-            .into_values()
-            .map(|a| a.1)
-            .collect::<Vec<_>>();
-        test_max(&arrays_f64, &a)
+        let simd_slice = f64::all_simd_slice().into_values().collect::<Vec<_>>();
+        test_max(&simd_slice, &a)
     }
 
-    fn test_sum_special_values<S>(array: &dyn SimdSlice<Scalar = S>)
+    fn test_sum_special_values<S>(simd_slice: &dyn SimdSlice<Scalar = S>)
     where
         S: Float,
     {
         for i in 0..17 {
             let mut special = [S::zero(); 17];
             special[i] = S::nan();
-            assert!(array.sum(&special).is_nan());
+            assert!(simd_slice.sum(&special).is_nan());
             special[i] = S::infinity();
-            assert!(array.sum(&special).is_infinite());
-            assert!(array.sum(&special).is_sign_positive());
+            assert!(simd_slice.sum(&special).is_infinite());
+            assert!(simd_slice.sum(&special).is_sign_positive());
             special[i] = -S::infinity();
-            assert!(array.sum(&special).is_infinite());
-            assert!(array.sum(&special).is_sign_negative());
+            assert!(simd_slice.sum(&special).is_infinite());
+            assert!(simd_slice.sum(&special).is_sign_negative());
         }
     }
 
-    fn test_sum_triangular<S>(array: &dyn SimdSlice<Scalar = S>)
+    fn test_sum_triangular<S>(simd_slice: &dyn SimdSlice<Scalar = S>)
     where
         S: fmt::Debug + Float,
     {
         for i in 1..=128 {
             let check = S::from((i * (i + 1)) / 2).unwrap();
             let a = (1..=i).map(|v| S::from(v).unwrap()).collect::<Vec<_>>();
-            let r = array.sum(&a);
+            let r = simd_slice.sum(&a);
             assert_eq!(r, check);
         }
     }
 
     #[test]
     fn test_sum_f32() {
-        for (array_f32, _) in all_platform_arrays().values() {
-            test_sum_triangular(array_f32.as_ref());
-            test_sum_special_values(array_f32.as_ref());
+        for simd_slice in f32::all_simd_slice().values() {
+            test_sum_triangular(simd_slice.as_ref());
+            test_sum_special_values(simd_slice.as_ref());
         }
     }
 
     #[test]
     fn test_sum_f64() {
-        for (_, array_f64) in all_platform_arrays().values() {
-            test_sum_triangular(array_f64.as_ref());
-            test_sum_special_values(array_f64.as_ref());
+        for simd_slice in f64::all_simd_slice().values() {
+            test_sum_triangular(simd_slice.as_ref());
+            test_sum_special_values(simd_slice.as_ref());
         }
     }
 }
