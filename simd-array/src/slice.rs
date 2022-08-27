@@ -155,7 +155,7 @@ impl PlatformSimdSlice for f64 {
             r.insert("sse4.1".to_string(), Box::new(SSE41Vector64));
         }
         if is_x86_feature_detected!("avx") {
-            r.insert("avx2".to_string(), Box::new(AVXVector64));
+            r.insert("avx".to_string(), Box::new(AVXVector64));
         }
         if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
             r.insert("avx2".to_string(), Box::new(AVX2Vector64));
