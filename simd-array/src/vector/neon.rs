@@ -65,6 +65,10 @@ impl SimdVector for NeonVector32 {
         vreinterpretq_f32_u32(r)
     }
 
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        vminq_f32(max, a)
+    }
+
     unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
         vmaxq_f32(min, a)
     }
@@ -82,13 +86,13 @@ impl SimdVector for NeonVector32 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn floor(a: Self::Float) -> Self::Float {
-        vrndmq_f32(a)
+    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
+        vfmaq_f32(c, a, b)
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
-        vfmaq_f32(c, a, b)
+    unsafe fn floor(a: Self::Float) -> Self::Float {
+        vrndmq_f32(a)
     }
 
     #[target_feature(enable = "neon")]
@@ -242,6 +246,10 @@ impl SimdVector for NeonVector64 {
         vreinterpretq_f64_u64(r)
     }
 
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        vminq_f64(max, a)
+    }
+
     unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
         vmaxq_f64(min, a)
     }
@@ -259,13 +267,13 @@ impl SimdVector for NeonVector64 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn floor(a: Self::Float) -> Self::Float {
-        vrndmq_f64(a)
+    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
+        vfmaq_f64(c, a, b)
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
-        vfmaq_f64(c, a, b)
+    unsafe fn floor(a: Self::Float) -> Self::Float {
+        vrndmq_f64(a)
     }
 
     #[target_feature(enable = "neon")]

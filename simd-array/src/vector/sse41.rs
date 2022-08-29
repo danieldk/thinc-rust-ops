@@ -64,6 +64,11 @@ impl SimdVector for SSE41Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        SSE2Vector32::clamp_max(a, max)
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
         SSE2Vector32::clamp_min(a, min)
     }
@@ -239,6 +244,11 @@ impl SimdVector for SSE41Vector64 {
         let u = _mm_and_pd(a, b);
         let v = _mm_andnot_pd(a, c);
         _mm_or_pd(u, v)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        SSE2Vector64::clamp_max(a, max)
     }
 
     #[target_feature(enable = "sse2")]

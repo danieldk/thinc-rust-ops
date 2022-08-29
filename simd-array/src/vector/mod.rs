@@ -63,6 +63,10 @@ pub trait SimdVector: Default + Send + Sync {
     /// Select bits which are set in `a` in `b` or otherwise `c`.
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float;
 
+    /// Clamp values to the range `[,max]`.
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float;
+
+    /// Clamp values to the range `[min,]`.
     unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float;
 
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float;
