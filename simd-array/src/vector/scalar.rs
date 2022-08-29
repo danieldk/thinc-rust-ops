@@ -36,12 +36,24 @@ impl SimdVector for ScalarVector32 {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
     }
 
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        max.min(a)
+    }
+
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        min.max(a)
+    }
+
     unsafe fn copy_sign(sign: Self::Float, dest: Self::Float) -> Self::Float {
         dest.copysign(sign)
     }
 
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
         a / b
+    }
+
+    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
+        a * b + c
     }
 
     unsafe fn floor(a: Self::Float) -> Self::Float {
@@ -54,10 +66,6 @@ impl SimdVector for ScalarVector32 {
         } else {
             0
         }
-    }
-
-    unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
-        a * b + c
     }
 
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
@@ -149,10 +157,6 @@ impl SimdVector for ScalarVector32 {
     ) -> Self::FloatScalar {
         reduce_generic!(Self, f, f_lanes, f_rest, init, a)
     }
-
-    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
-        min.max(a)
-    }
 }
 
 #[derive(Default)]
@@ -188,6 +192,14 @@ impl SimdVector for ScalarVector64 {
         Self::Float::from_bits((a & b.to_bits()) | ((!a) & c.to_bits()))
     }
 
+    unsafe fn clamp_max(a: Self::Float, max: Self::Float) -> Self::Float {
+        max.min(a)
+    }
+
+    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
+        min.max(a)
+    }
+
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
         dest.copysign(sign_src)
     }
@@ -196,12 +208,12 @@ impl SimdVector for ScalarVector64 {
         a / b
     }
 
-    unsafe fn floor(a: Self::Float) -> Self::Float {
-        a.floor()
-    }
-
     unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
         a * b + c
+    }
+
+    unsafe fn floor(a: Self::Float) -> Self::Float {
+        a.floor()
     }
 
     unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
@@ -247,7 +259,6 @@ impl SimdVector for ScalarVector64 {
     unsafe fn neg(a: Self::Float) -> Self::Float {
         -a
     }
-
     unsafe fn sub(a: Self::Float, b: Self::Float) -> Self::Float {
         a - b
     }
@@ -255,6 +266,7 @@ impl SimdVector for ScalarVector64 {
     unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float {
         maximum(a, b)
     }
+
     unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
         if a > b {
             b
@@ -299,9 +311,5 @@ impl SimdVector for ScalarVector64 {
         a: &[Self::FloatScalar],
     ) -> Self::FloatScalar {
         reduce_generic!(Self, f, f_lanes, f_rest, init, a)
-    }
-
-    unsafe fn clamp_min(a: Self::Float, min: Self::Float) -> Self::Float {
-        min.max(a)
     }
 }

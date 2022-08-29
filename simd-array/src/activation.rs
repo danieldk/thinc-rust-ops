@@ -47,7 +47,7 @@ where
         let x_min_val = V::splat(min_val);
         let x_max_val = V::splat(max_val);
         let x = V::add_scalar(V::mul_scalar(x, slope), offset);
-        V::vmin(V::clamp_min(x, x_min_val), x_max_val)
+        V::clamp_max(V::clamp_min(x, x_min_val), x_max_val)
     }
 
     #[inline(always)]
