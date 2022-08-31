@@ -18,11 +18,7 @@ simd-array = { path = "simd-array" }
 accelerate-src = { version = "0.3" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-# Fix incompatibility between anyhow and intel-mkl tool. Remove with
-# the next release of intel-mkl too. For more information, see:
-# https://github.com/rust-math/intel-mkl-src/issues/68
-anyhow = { version = "<=1.0.48", optional = true }
-intel-mkl-src = { version = "0.6" }
+intel-mkl-src = { version = "0.7", features = ["download"] }
 
 [target.'cfg(not(any(target_os = "macos", target_os = "windows")))'.dependencies]
 blis-src = { version = "0.2", default-features = false, features = ["serial", "cblas", "static"] }
