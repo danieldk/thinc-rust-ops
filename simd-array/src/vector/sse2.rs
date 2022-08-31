@@ -14,7 +14,7 @@ use std::ops::Neg;
 use aligned::{Aligned, A16};
 use num_traits::{Float, Zero};
 
-use crate::util::maximum;
+use crate::util::{maximum, minimum};
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 use crate::vector::SimdVector;
 
@@ -126,6 +126,13 @@ impl SimdVector for SSE2Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        let mines = Self::min(a, _mm_movehl_ps(a, a));
+        let mines = Self::min(mines, _mm_movehdup_ps(mines));
+        _mm_cvtss_f32(mines)
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm_mul_ps(a, b)
     }
@@ -154,8 +161,10 @@ impl SimdVector for SSE2Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_min_ps(a, b)
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        let min = _mm_min_ps(a, b);
+        let is_nan = _mm_cmpunord_ps(a, b);
+        _mm_or_ps(min, is_nan)
     }
 
     #[target_feature(enable = "sse2")]
@@ -315,6 +324,11 @@ impl SimdVector for SSE2Vector64 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        minimum(_mm_cvtsd_f64(a), _mm_cvtsd_f64(_mm_unpackhi_pd(a, a)))
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm_mul_pd(a, b)
     }
@@ -343,8 +357,10 @@ impl SimdVector for SSE2Vector64 {
     }
 
     #[target_feature(enable = "sse2")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_min_pd(a, b)
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        let min = _mm_min_pd(a, b);
+        let is_nan = _mm_cmpunord_pd(a, b);
+        _mm_or_pd(min, is_nan)
     }
 
     #[target_feature(enable = "sse2")]

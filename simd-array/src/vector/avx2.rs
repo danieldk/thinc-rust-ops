@@ -4,10 +4,10 @@ use std::arch::x86_64::{
     _mm256_castsi256_pd, _mm256_castsi256_ps, _mm256_cmp_pd, _mm256_cmp_ps, _mm256_cvtps_epi32,
     _mm256_div_pd, _mm256_div_ps, _mm256_extractf128_pd, _mm256_extractf128_ps, _mm256_floor_pd,
     _mm256_floor_ps, _mm256_fmadd_pd, _mm256_fmadd_ps, _mm256_load_si256, _mm256_loadu_pd,
-    _mm256_loadu_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd,
-    _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps,
-    _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd,
-    _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
+    _mm256_loadu_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd, _mm256_or_ps, _mm256_set1_epi32,
+    _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps, _mm256_store_pd, _mm256_store_ps,
+    _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps,
+    _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ,
 };
 use std::mem;
 use std::ops::Neg;
@@ -122,6 +122,11 @@ impl SimdVector for AVX2Vector32 {
         AVXVector32::max_lanes(a)
     }
 
+    #[target_feature(enable = "avx")]
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        AVXVector32::min_lanes(a)
+    }
+
     #[target_feature(enable = "avx2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm256_mul_ps(a, b)
@@ -150,8 +155,8 @@ impl SimdVector for AVX2Vector32 {
     }
 
     #[target_feature(enable = "avx2")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm256_min_ps(a, b)
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        AVXVector32::min(a, b)
     }
 
     #[target_feature(enable = "avx2")]
@@ -306,6 +311,11 @@ impl SimdVector for AVX2Vector64 {
     }
 
     #[target_feature(enable = "avx")]
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        AVXVector64::min_lanes(a)
+    }
+
+    #[target_feature(enable = "avx")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         _mm256_mul_pd(a, b)
     }
@@ -333,8 +343,8 @@ impl SimdVector for AVX2Vector64 {
     }
 
     #[target_feature(enable = "avx")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm256_min_pd(a, b)
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        AVXVector64::min(a, b)
     }
 
     #[target_feature(enable = "avx")]

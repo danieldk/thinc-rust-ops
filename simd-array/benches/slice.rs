@@ -37,10 +37,19 @@ fn max_benchmark(c: &mut Criterion) {
     });
 }
 
+fn min_benchmark(c: &mut Criterion) {
+    reduction_benchmark::<f32, _>(c, "min f32", |simd_slice, slice| {
+        simd_slice.min(slice).unwrap()
+    });
+    reduction_benchmark::<f64, _>(c, "min f64", |simd_slice, slice| {
+        simd_slice.min(slice).unwrap()
+    });
+}
+
 fn sum_benchmark(c: &mut Criterion) {
     reduction_benchmark::<f32, _>(c, "sum f32", |simd_slice, slice| simd_slice.sum(slice));
     reduction_benchmark::<f64, _>(c, "sum f64", |simd_slice, slice| simd_slice.sum(slice));
 }
 
-criterion_group!(slice, max_benchmark, sum_benchmark);
+criterion_group!(slice, max_benchmark, min_benchmark, sum_benchmark);
 criterion_main!(slice);

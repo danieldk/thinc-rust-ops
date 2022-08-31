@@ -3,10 +3,10 @@ use std::arch::aarch64::{
     vaddq_f32, vaddq_f64, vaddvq_f32, vaddvq_f64, vandq_u32, vandq_u64, vbicq_u32, vbicq_u64,
     vceqq_f32, vceqq_f64, vcgtq_f32, vcgtq_f64, vcltq_f32, vcltq_f64, vcvtq_s32_f32, vcvtq_s64_f64,
     vdivq_f32, vdivq_f64, vdupq_n_f32, vdupq_n_f64, vfmaq_f32, vfmaq_f64, vld1q_f32, vld1q_f64,
-    vmaxq_f32, vmaxq_f64, vmaxvq_f32, vmaxvq_f64, vminq_f32, vminq_f64, vmulq_f32, vmulq_f64,
-    vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64, vreinterpretq_f32_s32, vreinterpretq_f32_u32,
-    vreinterpretq_f64_s64, vreinterpretq_f64_u64, vreinterpretq_u32_f32, vreinterpretq_u64_f64,
-    vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
+    vmaxq_f32, vmaxq_f64, vmaxvq_f32, vmaxvq_f64, vminq_f32, vminq_f64, vminvq_f32, vminvq_f64,
+    vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64, vreinterpretq_f32_s32,
+    vreinterpretq_f32_u32, vreinterpretq_f64_s64, vreinterpretq_f64_u64, vreinterpretq_u32_f32,
+    vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
 };
 use std::mem;
 use std::ops::Neg;
@@ -119,6 +119,10 @@ impl SimdVector for NeonVector32 {
         vmaxvq_f32(a)
     }
 
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        vminvq_f32(a)
+    }
+
     #[target_feature(enable = "neon")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         vmulq_f32(a, b)
@@ -146,7 +150,7 @@ impl SimdVector for NeonVector32 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
         vminq_f32(a, b)
     }
 
@@ -300,6 +304,10 @@ impl SimdVector for NeonVector64 {
         vmaxvq_f64(a)
     }
 
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        vminvq_f64(a)
+    }
+
     #[target_feature(enable = "neon")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         vmulq_f64(a, b)
@@ -327,7 +335,7 @@ impl SimdVector for NeonVector64 {
     }
 
     #[target_feature(enable = "neon")]
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
         vminq_f64(a, b)
     }
 

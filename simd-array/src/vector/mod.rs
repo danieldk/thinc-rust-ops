@@ -99,7 +99,15 @@ pub trait SimdVector: Default + Send + Sync {
     /// If a is less than b, set all corresponding lanes to 1.
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask;
 
+    /// Get the maximum of all lanes.
+    ///
+    /// All implementations must be NaN-propagating.
     unsafe fn max_lanes(a: Self::Float) -> Self::FloatScalar;
+
+    /// Get the minimum of all lanes.
+    ///
+    /// All implementations must be NaN-propagating.
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar;
 
     /// Vector element-wise multiplication.
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float;
@@ -117,7 +125,9 @@ pub trait SimdVector: Default + Send + Sync {
     unsafe fn max(a: Self::Float, b: Self::Float) -> Self::Float;
 
     /// Vector element-wise minimum.
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float;
+    ///
+    /// All implementations must be NaN-propagating.
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float;
 
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float;
 

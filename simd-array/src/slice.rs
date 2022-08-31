@@ -8,6 +8,7 @@ use crate::activation::Activation;
 use crate::distribution::Distribution;
 use crate::elementary::Elementary;
 use crate::util::maximum;
+use crate::util::minimum;
 #[cfg(target_arch = "x86_64")]
 use crate::vector::avx::AVXVector32;
 #[cfg(target_arch = "x86_64")]
@@ -216,6 +217,12 @@ pub trait SimdSlice: Send + Sync {
 
     fn max(&self, a: &[Self::Scalar]) -> Option<Self::Scalar>;
 
+    /// Get the minimum value of the given array.
+    ///
+    /// If one of the values is `NaN`, the result of this reduction is
+    /// also NaN.
+    fn min(&self, a: &[Self::Scalar]) -> Option<Self::Scalar>;
+
     fn relu(&self, a: &mut [Self::Scalar]);
 
     fn softmax(&self, a: &mut [Self::Scalar], n_class: usize, temperature: Option<Self::Scalar>);
@@ -272,6 +279,23 @@ where
                 |acc, v| V::max(acc, v),
                 |v| V::max_lanes(v),
                 |init, a| maximum(init, lower.max(a).unwrap()),
+                a[0],
+                a,
+            )
+        })
+    }
+
+    fn min(&self, a: &[Self::Scalar]) -> Option<Self::Scalar> {
+        if a.is_empty() {
+            return None;
+        }
+
+        let lower = V::Lower::default();
+        Some(unsafe {
+            V::reduce(
+                |acc, v| V::min(acc, v),
+                |v| V::min_lanes(v),
+                |init, a| minimum(init, lower.min(a).unwrap()),
                 a[0],
                 a,
             )
@@ -339,7 +363,7 @@ mod tests {
     use std::fmt;
 
     use num_traits::Float;
-    use ordered_float::OrderedFloat;
+    use ordered_float::{NotNan, OrderedFloat};
     use quickcheck_macros::quickcheck;
 
     use super::{PlatformSimdSlice, SimdSlice};
@@ -367,6 +391,42 @@ mod tests {
     fn test_max_f64(a: Vec<f64>) -> bool {
         let simd_slice = f64::all_simd_slice().into_values().collect::<Vec<_>>();
         test_max(&simd_slice, &a)
+    }
+
+    fn test_min<S: Float>(simd_slice: &[Box<dyn SimdSlice<Scalar = S>>], a: &[S]) -> bool
+    where
+        S: std::fmt::Debug,
+    {
+        for array in simd_slice {
+            let check = match a
+                .iter()
+                .cloned()
+                .map(NotNan::new)
+                .collect::<Result<Vec<_>, _>>()
+            {
+                Ok(v) => v.into_iter().min().map(NotNan::into_inner),
+                Err(_) => Some(S::nan()),
+            };
+            let r = array.min(&a);
+
+            if r.map(OrderedFloat) != check.map(OrderedFloat) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[quickcheck]
+    fn test_min_f32(a: Vec<f32>) -> bool {
+        let simd_slice = f32::all_simd_slice().into_values().collect::<Vec<_>>();
+        test_min(&simd_slice, &a)
+    }
+
+    #[quickcheck]
+    fn test_min_f64(a: Vec<f64>) -> bool {
+        let simd_slice = f64::all_simd_slice().into_values().collect::<Vec<_>>();
+        test_min(&simd_slice, &a)
     }
 
     fn test_sum_special_values<S>(simd_slice: &dyn SimdSlice<Scalar = S>)
