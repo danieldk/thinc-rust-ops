@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::util::maximum;
+use crate::util::{maximum, minimum};
 use crate::vector::{apply_elementwise_generic, SimdVector};
 
 #[derive(Default)]
@@ -92,6 +92,10 @@ impl SimdVector for ScalarVector32 {
         a
     }
 
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
+    }
+
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         a * b
     }
@@ -112,12 +116,8 @@ impl SimdVector for ScalarVector32 {
         maximum(a, b)
     }
 
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        if a > b {
-            b
-        } else {
-            a
-        }
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        minimum(a, b)
     }
 
     unsafe fn splat(v: f32) -> Self::Float {
@@ -248,6 +248,10 @@ impl SimdVector for ScalarVector64 {
         a
     }
 
+    unsafe fn min_lanes(a: Self::Float) -> Self::FloatScalar {
+        a
+    }
+
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
         a * b
     }
@@ -267,12 +271,8 @@ impl SimdVector for ScalarVector64 {
         maximum(a, b)
     }
 
-    unsafe fn vmin(a: Self::Float, b: Self::Float) -> Self::Float {
-        if a > b {
-            b
-        } else {
-            a
-        }
+    unsafe fn min(a: Self::Float, b: Self::Float) -> Self::Float {
+        minimum(a, b)
     }
 
     unsafe fn splat(v: f64) -> Self::Float {
