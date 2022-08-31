@@ -63,49 +63,55 @@ where
         min_val: Self::Elem,
         max_val: Self::Elem,
     ) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().clipped_linear(
+        A::simd_slice().clipped_linear(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
             slope,
             offset,
             min_val,
             max_val,
-        ))
+        );
+        Ok(())
     }
 
     fn gelu(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().gelu(
+        A::simd_slice().gelu(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 
     fn hard_sigmoid(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().hard_sigmoid(
+        A::simd_slice().hard_sigmoid(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 
     fn hard_tanh(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().hard_tanh(
+        A::simd_slice().hard_tanh(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 
     fn logistic_cdf(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().logistic_cdf(
+        A::simd_slice().logistic_cdf(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 
     fn relu(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().relu(
+        A::simd_slice().relu(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 
     /// Softmax.
@@ -114,18 +120,20 @@ where
         n_class: usize,
         temperature: Option<Self::Elem>,
     ) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().softmax(
+        A::simd_slice().softmax(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
             n_class,
             temperature,
-        ))
+        );
+        Ok(())
     }
 
     fn swish(&mut self) -> Result<(), SimdArrayError> {
-        Ok(A::simd_slice().swish(
+        A::simd_slice().swish(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
-        ))
+        );
+        Ok(())
     }
 }

@@ -23,7 +23,7 @@ impl<'a> PyArrayDynFloat<'a> {
         }
     }
 
-    fn shape<'py>(&'a self) -> &'a [usize] {
+    fn shape(&self) -> &[usize] {
         match self {
             PyArrayDynFloat::F32(a) => a.shape(),
             PyArrayDynFloat::F64(a) => a.shape(),
@@ -50,6 +50,7 @@ impl RustOps {
         RustOps
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[args(
         slope = "1.0",
         offset = "0.0",
