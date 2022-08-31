@@ -180,7 +180,7 @@ unsafe fn apply_elementwise_generic<V>(
         a = &mut a[elem_size..];
     }
 
-    if a.len() > 0 {
+    if !a.is_empty() {
         f_rest(a);
     }
 }
