@@ -1,0 +1,22 @@
+name: Check with clippy
+
+on: [push, pull_request]
+
+jobs:
+  clippy_check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - 1.62.0
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: ${{ matrix.rust }}
+            components: clippy
+            override: true
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
