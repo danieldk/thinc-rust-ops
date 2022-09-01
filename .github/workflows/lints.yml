@@ -1,4 +1,4 @@
-name: Check with clippy
+name: Lints
 
 on: [push, pull_request]
 
@@ -8,15 +8,19 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.62.0
+          - 1.63.0
     steps:
       - uses: actions/checkout@v1
       - uses: actions-rs/toolchain@v1
         with:
+            profile: minimal
             toolchain: ${{ matrix.rust }}
-            components: clippy
+            components: rustfmt, clippy
             override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # args: --all-features
