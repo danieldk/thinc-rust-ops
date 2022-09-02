@@ -161,6 +161,11 @@ impl SimdVector for SSE41Vector32 {
     }
 
     #[target_feature(enable = "sse2")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        SSE2Vector32::sqrt(v)
+    }
+
+    #[target_feature(enable = "sse2")]
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
         _mm_castsi128_ps(v)
     }
@@ -346,6 +351,11 @@ impl SimdVector for SSE41Vector64 {
     #[target_feature(enable = "sse2")]
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float {
         _mm_set1_pd(v)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        SSE2Vector64::sqrt(v)
     }
 
     #[target_feature(enable = "sse2")]

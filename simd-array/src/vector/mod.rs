@@ -131,6 +131,8 @@ pub trait SimdVector: Default + Send + Sync {
 
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float;
 
+    unsafe fn sqrt(v: Self::Float) -> Self::Float;
+
     unsafe fn sub_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
         let b = Self::splat(b);
         Self::sub(a, b)

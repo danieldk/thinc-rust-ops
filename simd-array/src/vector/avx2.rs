@@ -164,6 +164,11 @@ impl SimdVector for AVX2Vector32 {
         _mm256_set1_ps(v)
     }
 
+    #[target_feature(enable = "avx")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        AVXVector32::sqrt(v)
+    }
+
     #[target_feature(enable = "avx2")]
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
         _mm256_castsi256_ps(v)
@@ -350,6 +355,11 @@ impl SimdVector for AVX2Vector64 {
     #[target_feature(enable = "avx")]
     unsafe fn splat(v: f64) -> Self::Float {
         _mm256_set1_pd(v)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        AVXVector64::sqrt(v)
     }
 
     #[target_feature(enable = "avx")]
