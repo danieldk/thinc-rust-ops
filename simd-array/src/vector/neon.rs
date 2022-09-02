@@ -6,7 +6,8 @@ use std::arch::aarch64::{
     vmaxq_f32, vmaxq_f64, vmaxvq_f32, vmaxvq_f64, vminq_f32, vminq_f64, vminvq_f32, vminvq_f64,
     vmulq_f32, vmulq_f64, vnegq_f32, vnegq_f64, vorrq_u32, vorrq_u64, vreinterpretq_f32_s32,
     vreinterpretq_f32_u32, vreinterpretq_f64_s64, vreinterpretq_f64_u64, vreinterpretq_u32_f32,
-    vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vst1q_f32, vst1q_f64, vsubq_f32, vsubq_f64,
+    vreinterpretq_u64_f64, vrndmq_f32, vrndmq_f64, vsqrtq_f32, vsqrtq_f64, vst1q_f32, vst1q_f64,
+    vsubq_f32, vsubq_f64,
 };
 use std::mem;
 use std::ops::Neg;
@@ -157,6 +158,11 @@ impl SimdVector for NeonVector32 {
     #[target_feature(enable = "neon")]
     unsafe fn splat(v: f32) -> Self::Float {
         vdupq_n_f32(v)
+    }
+
+    #[target_feature(enable = "neon")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        vsqrtq_f32(v)
     }
 
     #[target_feature(enable = "neon")]
@@ -342,6 +348,11 @@ impl SimdVector for NeonVector64 {
     #[target_feature(enable = "neon")]
     unsafe fn splat(v: f64) -> Self::Float {
         vdupq_n_f64(v)
+    }
+
+    #[target_feature(enable = "neon")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        vsqrtq_f64(v)
     }
 
     #[target_feature(enable = "neon")]

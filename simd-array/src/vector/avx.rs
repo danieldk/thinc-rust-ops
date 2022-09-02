@@ -6,8 +6,9 @@ use std::arch::x86_64::{
     _mm256_floor_ps, _mm256_load_si256, _mm256_loadu_pd, _mm256_loadu_ps, _mm256_max_pd,
     _mm256_max_ps, _mm256_min_pd, _mm256_min_ps, _mm256_mul_pd, _mm256_mul_ps, _mm256_or_pd,
     _mm256_or_ps, _mm256_set1_epi32, _mm256_set1_epi64x, _mm256_set1_pd, _mm256_set1_ps,
-    _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd, _mm256_storeu_ps, _mm256_sub_pd,
-    _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ, _CMP_GT_OQ, _CMP_LT_OQ, _CMP_UNORD_Q,
+    _mm256_sqrt_pd, _mm256_sqrt_ps, _mm256_store_pd, _mm256_store_ps, _mm256_storeu_pd,
+    _mm256_storeu_ps, _mm256_sub_pd, _mm256_sub_ps, _mm256_xor_pd, _mm256_xor_ps, _CMP_EQ_OQ,
+    _CMP_GT_OQ, _CMP_LT_OQ, _CMP_UNORD_Q,
 };
 use std::mem;
 use std::ops::Neg;
@@ -167,6 +168,11 @@ impl SimdVector for AVXVector32 {
     #[target_feature(enable = "avx")]
     unsafe fn splat(v: f32) -> Self::Float {
         _mm256_set1_ps(v)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        _mm256_sqrt_ps(v)
     }
 
     #[target_feature(enable = "avx")]
@@ -361,6 +367,11 @@ impl SimdVector for AVXVector64 {
     #[target_feature(enable = "avx")]
     unsafe fn splat(v: f64) -> Self::Float {
         _mm256_set1_pd(v)
+    }
+
+    #[target_feature(enable = "avx")]
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        _mm256_sqrt_pd(v)
     }
 
     #[target_feature(enable = "avx")]

@@ -124,6 +124,10 @@ impl SimdVector for ScalarVector32 {
         v
     }
 
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        v.sqrt()
+    }
+
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
         Self::Float::from_bits(v as u32)
     }
@@ -277,6 +281,9 @@ impl SimdVector for ScalarVector64 {
 
     unsafe fn splat(v: f64) -> Self::Float {
         v
+    }
+    unsafe fn sqrt(v: Self::Float) -> Self::Float {
+        v.sqrt()
     }
 
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
