@@ -223,6 +223,16 @@ impl RustOps {
     ) -> PyResult<PyArrayDynFloat<'py>> {
         Self::elementwise_op(py, x, inplace, |mut a| a.swish(), |mut a| a.swish())
     }
+
+    #[args(inplace = "false")]
+    fn dish<'py>(
+        &self,
+        py: Python<'py>,
+        x: PyArrayDynFloat<'py>,
+        inplace: bool,
+    ) -> PyResult<PyArrayDynFloat<'py>> {
+        Self::elementwise_op(py, x, inplace, |mut a| a.dish(), |mut a| a.dish())
+    }
 }
 
 impl RustOps {
