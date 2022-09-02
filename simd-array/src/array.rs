@@ -46,6 +46,9 @@ pub trait SimdArrayMut {
 
     /// Swish activation.
     fn swish(&mut self) -> Result<(), SimdArrayError>;
+
+    /// Dish™ activation.
+    fn dish(&mut self) -> Result<(), SimdArrayError>;
 }
 
 impl<S, D, A> SimdArrayMut for ArrayBase<S, D>
@@ -131,6 +134,14 @@ where
 
     fn swish(&mut self) -> Result<(), SimdArrayError> {
         A::simd_slice().swish(
+            self.as_slice_memory_order_mut()
+                .ok_or(SimdArrayError::NonContiguous)?,
+        );
+        Ok(())
+    }
+
+    fn dish(&mut self) -> Result<(), SimdArrayError> {
+        A::simd_slice().dish(
             self.as_slice_memory_order_mut()
                 .ok_or(SimdArrayError::NonContiguous)?,
         );
