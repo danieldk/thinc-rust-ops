@@ -232,6 +232,8 @@ pub trait SimdSlice: Send + Sync {
     fn sum(&self, a: &[Self::Scalar]) -> Self::Scalar;
 
     fn swish(&self, a: &mut [Self::Scalar]);
+
+    fn dish(&self, a: &mut [Self::Scalar]);
 }
 
 impl<V, T, U> SimdSlice for V
@@ -356,6 +358,7 @@ where
     unary_activation!(logistic_cdf);
     unary_activation!(relu);
     unary_activation!(swish);
+    unary_activation!(dish);
 }
 
 #[cfg(test)]

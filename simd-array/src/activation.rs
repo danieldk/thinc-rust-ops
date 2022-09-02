@@ -26,6 +26,8 @@ pub trait Activation {
     unsafe fn relu(x: Self::Float) -> Self::Float;
 
     unsafe fn swish(x: Self::Float) -> Self::Float;
+
+    unsafe fn dish(x: Self::Float) -> Self::Float;
 }
 
 impl<V, T> Activation for V
@@ -86,5 +88,19 @@ where
     #[inline(always)]
     unsafe fn swish(x: Self::Float) -> Self::Float {
         V::mul(x, Self::logistic_cdf(x))
+    }
+
+    #[inline(always)]
+    unsafe fn dish(x: Self::Float) -> Self::Float {
+        let sq_plus_one = V::add_scalar(
+            V::mul(x, x),
+            <Self::FloatScalar as NumCast>::from(1.0).unwrap(),
+        );
+        let inner = V::add_scalar(
+            V::div(x, V::sqrt(sq_plus_one)),
+            <Self::FloatScalar as NumCast>::from(1.0).unwrap(),
+        );
+        let multiplier = V::mul_scalar(x, <Self::FloatScalar as NumCast>::from(0.5).unwrap());
+        V::mul(inner, multiplier)
     }
 }
