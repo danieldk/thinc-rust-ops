@@ -31,24 +31,30 @@ jobs:
             target/debug/
             target/release/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Run simd-array tests
+      - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --manifest-path simd-array/Cargo.toml
       - name: Install Python build dependencies
         run: python -m pip install maturin hypothesis packaging pytest torch
       - name: Build Python abi3 wheel using Python ${{ matrix.python-version }}
-        run: maturin build --release -i ${{ env.pythonLocation}}/python
+        run: |
+          (
+            cd thinc-rust-ops
+            maturin build --release -i ${{ env.pythonLocation}}/python
+          )
         if: runner.os != 'Windows'
       - name: Build Python abi3 wheel using Python ${{ matrix.python-version }} (Windows)
-        run: maturin build --release -i ${{ env.pythonLocation }}\python.exe
+        run: cmd /c "cd thinc-rust-ops && maturin build --release -i ${{ env.pythonLocation }}\python.exe"
         if: runner.os == 'Windows'
       - name: Local tests
         shell: bash
         run: |
-          pip install target/wheels/rust_ops*.whl
-          pytest
+          (
+            pip install target/wheels/rust_ops*.whl
+            cd thinc-rust-ops
+            pytest
+          )
       - name: Upload wheel
         uses: actions/upload-artifact@v2
         with:
