@@ -18,6 +18,10 @@ jobs:
         toolchain: stable
         override: true
         target: aarch64-apple-darwin
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.7
     - name: Install build tools
       run: |
         pip install maturin
@@ -26,7 +30,7 @@ jobs:
         DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         MACOSX_DEPLOYMENT_TARGET: '10.9'
       run: |
-        maturin build --release --universal2 -i `which python3.7`
+        ( cd thinc-rust-ops ; maturin build --release --universal2 -i `which python3.7` )
     - name: Upload wheel
       uses: actions/upload-artifact@v2
       with:
@@ -44,25 +48,22 @@ jobs:
       run: |
         curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-    - name: Set up Python 3.6
+    - name: Set up Python 3.7
       run: |
-        echo "/opt/python/cp36-cp36m/bin" >> $GITHUB_PATH
-        echo "PYROOT=/opt/python/cp36-cp36m" >> $GITHUB_ENV
-        echo "PYBIN=/opt/python/cp36-cp36m/bin" >> $GITHUB_ENV
-    - name: Install MKL
-      run: |
-        ${{ env.PYBIN }}/pip install mkl-static==2021.4.0
-        ln -s ${{ env.PYROOT }}/lib ${{ env.PYROOT }}/lib/intel64
-        echo "MKLROOT=${{ env.PYROOT }}" >> $GITHUB_ENV
+        echo "/opt/python/cp37-cp37m/bin" >> $GITHUB_PATH
+        echo "PYROOT=/opt/python/cp37-cp37m" >> $GITHUB_ENV
+        echo "PYBIN=/opt/python/cp37-cp37m/bin" >> $GITHUB_ENV
     - name: Install build tools
       run: |
         ${{ env.PYBIN }}/pip install auditwheel maturin
     - name: Build abi3 wheel
       run: |
-        ${{ env.PYBIN }}/maturin build --release \
-          -i ${{ env.PYBIN }}/python \
-          --cargo-extra-args='--features="intel-mkl"' \
-          --compatibility manylinux2014
+        (
+          cd thinc-rust-ops ;
+          ${{ env.PYBIN }}/maturin build --release \
+            -i ${{ env.PYBIN }}/python \
+            --compatibility manylinux2014
+        )
     - name: Audit wheel
       run: |
         for wheel in target/wheels/*.whl; do
@@ -96,8 +97,7 @@ jobs:
       run: |
         pip install maturin
     - name: Build Python ${{ matrix.python-version}} wheel
-      run: |
-        maturin build --release -i ${{ env.pythonLocation }}\python.exe
+      run: cmd /c "cd thinc-rust-ops && maturin build --release -i ${{ env.pythonLocation }}\python.exe"
     - name: Upload wheel
       uses: actions/upload-artifact@v2
       with:
