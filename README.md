@@ -13,7 +13,7 @@ The following SIMD instruction sets are currently supported:
   - AVX
   - AVX2 + FMA
 
-# ⏳ Install
+## ⏳ Install
 
 Make sure that you have a [Rust toolchain](https://rustup.rs) installed and then
 install with `pip`:
@@ -22,7 +22,7 @@ install with `pip`:
 python -m pip install git+https://github.com/danieldk/thinc-rust-ops#subdirectory=thinc-rust-ops
 ```
 
-# 🚀 Quickstart
+## 🚀 Quickstart
 
 After installation, you can import `RustOps` and use it like any other `Ops` implementation:
 
