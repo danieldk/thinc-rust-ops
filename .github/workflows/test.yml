@@ -37,6 +37,8 @@ jobs:
           command: test
       - name: Install Python build dependencies
         run: python -m pip install maturin hypothesis packaging pytest torch
+      - name: Install thinc
+        run: python -m pip install git+https://github.com/explosion/thinc.git@102d654   
       - name: Build Python abi3 wheel using Python ${{ matrix.python-version }}
         run: |
           (
@@ -81,6 +83,8 @@ jobs:
           name: wheel 3.7 ${{ matrix.os }}
       - name: Install pytest
         run: python -m pip install hypothesis packaging pytest torch
+      - name: Install thinc
+        run: python -m pip install git+https://github.com/explosion/thinc.git@102d654 
       - name: Install rust_ops wheel
         shell: bash
         run: pip install rust_ops*.whl
