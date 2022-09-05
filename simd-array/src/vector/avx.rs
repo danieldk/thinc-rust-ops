@@ -185,6 +185,7 @@ impl SimdVector for AVXVector32 {
         _mm256_cvtps_epi32(v)
     }
 
+    #[target_feature(enable = "avx")]
     unsafe fn to_float_scalar_array(v: Self::Float) -> Self::FloatScalarArray {
         let mut a: Aligned<A32, _> = Aligned([0f32; 8]);
         _mm256_store_ps(a.as_mut_ptr(), v);
