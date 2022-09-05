@@ -1,4 +1,6 @@
-pub(crate) mod activation;
+//! SIMD-optimized methods for [`ndarray`](ndarray) arrays.
+
+mod activation;
 
 mod array;
 pub use array::{SimdArrayError, SimdArrayMut};
@@ -7,9 +9,8 @@ mod distribution;
 
 mod elementary;
 
-pub(crate) mod slice;
-pub use slice::{PlatformSimdSlice, SimdSlice};
+mod slice;
 
-pub(crate) mod util;
+mod util;
 
-pub(crate) mod vector;
+mod vector;
