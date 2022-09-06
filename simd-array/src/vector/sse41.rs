@@ -1,17 +1,10 @@
 use std::arch::x86_64::{
-    __m128, __m128d, __m128i, _mm_add_pd, _mm_add_ps, _mm_and_pd, _mm_and_ps, _mm_andnot_pd,
-    _mm_andnot_ps, _mm_castsi128_pd, _mm_castsi128_ps, _mm_cmpeq_pd, _mm_cmpeq_ps, _mm_cmpgt_pd,
-    _mm_cmpgt_ps, _mm_cmplt_pd, _mm_cmplt_ps, _mm_cvtps_epi32, _mm_cvtsd_f64, _mm_cvtss_f32,
-    _mm_div_pd, _mm_div_ps, _mm_floor_pd, _mm_floor_ps, _mm_load_si128, _mm_loadu_pd, _mm_loadu_ps,
-    _mm_movehdup_ps, _mm_movehl_ps, _mm_mul_pd, _mm_mul_ps, _mm_or_pd, _mm_or_ps, _mm_set1_pd,
-    _mm_set1_ps, _mm_store_pd, _mm_store_ps, _mm_storeu_pd, _mm_storeu_ps, _mm_sub_pd, _mm_sub_ps,
-    _mm_unpackhi_pd, _mm_xor_pd, _mm_xor_ps,
+    __m128, __m128d, __m128i, _mm_floor_pd, _mm_floor_ps, _mm_loadu_pd, _mm_loadu_ps,
+    _mm_storeu_pd, _mm_storeu_ps,
 };
 use std::mem;
-use std::ops::Neg;
 
 use aligned::{Aligned, A16};
-use num_traits::{Float, Zero};
 
 use crate::vector::scalar::{ScalarVector32, ScalarVector64};
 use crate::vector::SimdVector;
@@ -35,32 +28,27 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn abs(a: Self::Float) -> Self::Float {
-        let sign_mask = Self::splat(Self::FloatScalar::zero().neg());
-        _mm_andnot_ps(sign_mask, a)
+        SSE2Vector32::abs(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_add_ps(a, b)
+        SSE2Vector32::add(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
-        let sums = _mm_add_ps(a, _mm_movehl_ps(a, a));
-        let sums = _mm_add_ps(sums, _mm_movehdup_ps(sums));
-        _mm_cvtss_f32(sums)
+        SSE2Vector32::add_lanes(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
-        _mm_add_ps(a, _mm_set1_ps(b))
+        SSE2Vector32::add_scalar(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
-        let u = _mm_and_ps(a, b);
-        let v = _mm_andnot_ps(a, c);
-        _mm_or_ps(u, v)
+        SSE2Vector32::bitwise_select(a, b, c)
     }
 
     #[target_feature(enable = "sse2")]
@@ -75,18 +63,17 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
-        let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
-        Self::bitwise_select(sign_bit_mask, sign_src, dest)
+        SSE2Vector32::copy_sign(sign_src, dest)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_div_ps(a, b)
+        SSE2Vector32::div(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
-        _mm_add_ps(_mm_mul_ps(a, b), c)
+        SSE2Vector32::fma(a, b, c)
     }
 
     #[target_feature(enable = "sse4.1")]
@@ -96,22 +83,22 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmpeq_ps(a, b)
+        SSE2Vector32::eq(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmpgt_ps(a, b)
+        SSE2Vector32::gt(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
-        _mm_loadu_ps(a.as_ptr())
+        SSE2Vector32::load(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmplt_ps(a, b)
+        SSE2Vector32::lt(a, b)
     }
 
     #[target_feature(enable = "sse2")]
@@ -126,23 +113,22 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_mul_ps(a, b)
+        SSE2Vector32::mul(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn mul_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
-        _mm_mul_ps(a, _mm_set1_ps(b))
+        SSE2Vector32::mul_scalar(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn neg(a: Self::Float) -> Self::Float {
-        let neg_zero = _mm_set1_ps(Self::FloatScalar::neg_zero());
-        _mm_xor_ps(a, neg_zero)
+        SSE2Vector32::neg(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn sub(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_sub_ps(a, b)
+        SSE2Vector32::sub(a, b)
     }
 
     #[target_feature(enable = "sse2")]
@@ -157,7 +143,7 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float {
-        _mm_set1_ps(v)
+        SSE2Vector32::splat(v)
     }
 
     #[target_feature(enable = "sse2")]
@@ -167,19 +153,17 @@ impl SimdVector for SSE41Vector32 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
-        _mm_castsi128_ps(v)
+        SSE2Vector32::reinterpret_float_signed(v)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn to_int(v: Self::Float) -> Self::Int {
-        _mm_cvtps_epi32(v)
+        SSE2Vector32::to_int(v)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn to_float_scalar_array(v: Self::Float) -> Self::FloatScalarArray {
-        let mut a: Aligned<A16, _> = Aligned([0f32; 4]);
-        _mm_store_ps(a.as_mut_ptr(), v);
-        a
+        SSE2Vector32::to_float_scalar_array(v)
     }
 
     #[target_feature(enable = "sse4.1")]
@@ -230,30 +214,27 @@ impl SimdVector for SSE41Vector64 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn abs(a: Self::Float) -> Self::Float {
-        let sign_mask = Self::splat(Self::FloatScalar::zero().neg());
-        _mm_andnot_pd(sign_mask, a)
+        SSE2Vector64::abs(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_add_pd(a, b)
+        SSE2Vector64::add(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add_lanes(a: Self::Float) -> Self::FloatScalar {
-        _mm_cvtsd_f64(a) + _mm_cvtsd_f64(_mm_unpackhi_pd(a, a))
+        SSE2Vector64::add_lanes(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn add_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
-        _mm_add_pd(a, _mm_set1_pd(b))
+        SSE2Vector64::add_scalar(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn bitwise_select(a: Self::Mask, b: Self::Float, c: Self::Float) -> Self::Float {
-        let u = _mm_and_pd(a, b);
-        let v = _mm_andnot_pd(a, c);
-        _mm_or_pd(u, v)
+        SSE2Vector64::bitwise_select(a, b, c)
     }
 
     #[target_feature(enable = "sse2")]
@@ -268,18 +249,17 @@ impl SimdVector for SSE41Vector64 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn copy_sign(sign_src: Self::Float, dest: Self::Float) -> Self::Float {
-        let sign_bit_mask = Self::splat(Self::FloatScalar::zero().neg());
-        Self::bitwise_select(sign_bit_mask, sign_src, dest)
+        SSE2Vector64::copy_sign(sign_src, dest)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn div(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_div_pd(a, b)
+        SSE2Vector64::div(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn fma(a: Self::Float, b: Self::Float, c: Self::Float) -> Self::Float {
-        _mm_add_pd(_mm_mul_pd(a, b), c)
+        SSE2Vector64::fma(a, b, c)
     }
 
     #[target_feature(enable = "sse4.1")]
@@ -289,17 +269,22 @@ impl SimdVector for SSE41Vector64 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn eq(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmpeq_pd(a, b)
+        SSE2Vector64::eq(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn gt(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmpgt_pd(a, b)
+        SSE2Vector64::gt(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn load(a: &[Self::FloatScalar]) -> Self::Float {
-        _mm_loadu_pd(a.as_ptr())
+        SSE2Vector64::load(a)
+    }
+
+    #[target_feature(enable = "sse2")]
+    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
+        SSE2Vector64::lt(a, b)
     }
 
     #[target_feature(enable = "sse2")]
@@ -313,29 +298,23 @@ impl SimdVector for SSE41Vector64 {
     }
 
     #[target_feature(enable = "sse2")]
-    unsafe fn lt(a: Self::Float, b: Self::Float) -> Self::Mask {
-        _mm_cmplt_pd(a, b)
-    }
-
-    #[target_feature(enable = "sse2")]
     unsafe fn mul(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_mul_pd(a, b)
+        SSE2Vector64::mul(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn mul_scalar(a: Self::Float, b: Self::FloatScalar) -> Self::Float {
-        _mm_mul_pd(a, _mm_set1_pd(b))
+        SSE2Vector64::mul_scalar(a, b)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn neg(a: Self::Float) -> Self::Float {
-        let neg_zero = _mm_set1_pd(Self::FloatScalar::neg_zero());
-        _mm_xor_pd(a, neg_zero)
+        SSE2Vector64::neg(a)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn sub(a: Self::Float, b: Self::Float) -> Self::Float {
-        _mm_sub_pd(a, b)
+        SSE2Vector64::sub(a, b)
     }
 
     #[target_feature(enable = "sse2")]
@@ -350,7 +329,7 @@ impl SimdVector for SSE41Vector64 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn splat(v: Self::FloatScalar) -> Self::Float {
-        _mm_set1_pd(v)
+        SSE2Vector64::splat(v)
     }
 
     #[target_feature(enable = "sse2")]
@@ -360,23 +339,17 @@ impl SimdVector for SSE41Vector64 {
 
     #[target_feature(enable = "sse2")]
     unsafe fn reinterpret_float_signed(v: Self::Int) -> Self::Float {
-        _mm_castsi128_pd(v)
+        SSE2Vector64::reinterpret_float_signed(v)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn to_int(v: Self::Float) -> Self::Int {
-        // Blegh, no instruction for this before AVX-512.
-        let mut data_f64: Aligned<A16, _> = Aligned([0f64; 2]);
-        _mm_store_pd(data_f64.as_mut_ptr(), v);
-        let data: Aligned<A16, [i64; 2]> = Aligned(data_f64.map(|v| v as i64));
-        _mm_load_si128(data.as_ptr().cast())
+        SSE2Vector64::to_int(v)
     }
 
     #[target_feature(enable = "sse2")]
     unsafe fn to_float_scalar_array(v: Self::Float) -> Self::FloatScalarArray {
-        let mut a: Aligned<A16, _> = Aligned([0f64; 2]);
-        _mm_store_pd(a.as_mut_ptr(), v);
-        a
+        SSE2Vector64::to_float_scalar_array(v)
     }
 
     #[target_feature(enable = "sse4.1")]
