@@ -11,6 +11,9 @@ mod elementary;
 
 mod slice;
 
+#[doc(hidden)]
+pub use slice::{PlatformSimdSlice, SimdSlice};
+
 mod util;
 
 mod vector;
